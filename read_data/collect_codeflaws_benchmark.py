@@ -88,7 +88,7 @@ def collect(path, debug=False):
 if __name__ == '__main__':
     import config
     benchmark_path = config.CODEFLAWS_BENCHMARK
-    benchmark_content = collect(benchmark_path, debug=True)
+    benchmark_content = collect(benchmark_path, debug=False)
     name_list = ["problem_id", "right_code_id", "right_code", "error_code_id", "error_code", "test_case",
                  "heldout_test_case"]
     contents = [list(t) for t in zip(*benchmark_content)]
