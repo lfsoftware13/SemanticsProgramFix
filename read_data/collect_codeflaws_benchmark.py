@@ -1,6 +1,7 @@
 import os
 import re
 from collections import defaultdict, OrderedDict
+import tqdm
 
 import pandas as pd
 
@@ -54,7 +55,7 @@ def collect(path, debug=False):
     heldout_test_case_pattern = re.compile(r"heldout-(input|output)-pos(\d+)")
     test_case_pattern = re.compile(r"(input|output)-pos(\d+)")
     res = []
-    for p_path in util.scan_dir(path, dir_level=0):
+    for p_path in tqdm.tqdm(util.scan_dir(path, dir_level=0)):
         if debug and len(res) > 10:
             break
         base_name, name = os.path.split(p_path)
@@ -87,7 +88,7 @@ def collect(path, debug=False):
 if __name__ == '__main__':
     import config
     benchmark_path = config.CODEFLAWS_BENCHMARK
-    benchmark_content = collect(benchmark_path, debug=False)
+    benchmark_content = collect(benchmark_path, debug=True)
     name_list = ["problem_id", "right_code_id", "right_code", "error_code_id", "error_code", "test_case",
                  "heldout_test_case"]
     contents = [list(t) for t in zip(*benchmark_content)]
