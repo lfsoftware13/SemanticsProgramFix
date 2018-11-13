@@ -230,7 +230,7 @@ tokens = ["LINE_COMMENT", "MULTILINE_COMMENT", "WHITESPACE", "INCLUDE", "ID"] + 
 
 lexer = lex.lex(debug=True)
 
-def tokenize(s):
+def clexer_tokenize(s):
     lexer.input(s)
     def token():
         while True:
@@ -244,5 +244,5 @@ def tokenize(s):
 if __name__ == '__main__':
     with open(sys.argv[1]) as f:
         source = f.read()
-    for t in tokenize(source):
+    for t in clexer_tokenize(source):
         print(t)

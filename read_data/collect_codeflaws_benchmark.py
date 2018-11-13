@@ -85,11 +85,11 @@ def collect(path, debug=False):
     return res
 
 
-if __name__ == '__main__':
+def read_and_pickle_codeflaws_data():
     import config
     benchmark_path = config.CODEFLAWS_BENCHMARK
     benchmark_content = collect(benchmark_path, debug=False)
-    name_list = ["problem_id", "right_code_id", "right_code", "error_code_id", "error_code", "test_case",
+    name_list = ["problem_id", "error_code_id", "error_code", "right_code_id", "right_code", "test_case",
                  "heldout_test_case"]
     contents = [list(t) for t in zip(*benchmark_content)]
 
@@ -98,3 +98,8 @@ if __name__ == '__main__':
     }))
     # print(df)
     df.to_pickle(config.CODEFLAWS_BENCHMARK_df_target)
+    return df
+
+
+if __name__ == '__main__':
+    read_and_pickle_codeflaws_data()

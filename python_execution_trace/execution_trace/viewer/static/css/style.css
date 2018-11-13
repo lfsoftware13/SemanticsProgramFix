@@ -1,0 +1,37 @@
+.source-viewer {
+
+}
+
+.state-viewer-wrapper {
+    padding-left: 0;
+    height: 45em;
+    overflow: scroll;
+}
+
+.var-state:not(:last-child) {
+    border-bottom: thin solid #aaa;
+    margin-top: 0.5em;
+    margin-bottom: 0.5em;
+}
+
+.var-name {
+    font-weight: bold;
+}
+
+.CodeMirror {
+    /* Disable clicks so that no inconsistent state can be reached.
+       `active-line` is only changed via the state viewer's handlers. */
+    pointer-events: none;
+    height: 50em;
+}
+
+#slider {
+    width: 30em;
+    transform: translateX(-15em) translateY(15em) rotate(90deg);
+}
+
+#number {
+    width: 3em;
+    display: inline;
+}
+

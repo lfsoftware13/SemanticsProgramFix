@@ -5,7 +5,9 @@ import os
 import pickle
 import random
 import re
+import tokenize
 import types
+from io import BytesIO
 from multiprocessing import Pool
 import typing
 import hashlib
@@ -30,7 +32,7 @@ import torch.multiprocessing as mp
 
 from common.args_util import get_compile_pool
 from common.logger import info
-from common.new_tokenizer import tokenize
+from common.new_tokenizer import clexer_tokenize
 from config import num_processes
 
 
@@ -777,10 +779,41 @@ def tokenize_cpp_code_by_new_tokenize(code, print_exception=False):
                         code.find('pragma') != -1 or code.find('ifndef') != -1 or \
                         code.find('ifdef') != -1 or code.find('endif') != -1:
             return None
-        tokens = tokenize(code)
+        tokens = clexer_tokenize(code)
         if len(tokens) > 2000:
             return None
         return tokens
+    except Exception as e:
+        if print_exception:
+            print(e)
+        return None
+
+
+def tokenize_python_code(code, print_exception=False):
+    try:
+        if code.find('import') != -1:
+            return None
+        g = tokenize.tokenize(BytesIO(code.encode('utf-8')).readline)
+        tokens = [tokval for toknum, tokval, _, _, _ in g]
+        if len(tokens) > 2000:
+            return None
+        return tokens[1:]
+    except Exception as e:
+        if print_exception:
+            print(e)
+        return None
+
+
+def tokenize_python_code_with_type(code, print_exception=False):
+    try:
+        if code.find('import') != -1:
+            return None
+        g = tokenize.tokenize(BytesIO(code.encode('utf-8')).readline)
+        tokens = [(t.type, t.exact_type, t.string) for t in g]
+        # tokens = [(toknum, tokval) for toknum, tokval, _, _, _ in g]
+        if len(tokens) > 2000:
+            return None
+        return tokens[1:]
     except Exception as e:
         if print_exception:
             print(e)

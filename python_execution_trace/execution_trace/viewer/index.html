@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <link rel="stylesheet" href="static/css/foundation.min.css">
+    <link rel="stylesheet" href="static/css/codemirror.css">
+    <link rel="stylesheet" href="static/css/style.css">
+
+    <script src="static/js/jquery.js"></script>
+    <script src="static/js/foundation.min.js"></script>
+    <script src="static/js/codemirror.js"></script>
+    <script src="static/js/handlebars.min.js"></script>
+    <script src="static/js/active-line.js"></script>
+    <script src="static/js/python.js"></script>
+
+    <title>Python Execution Trace</title>
+</head>
+<body>
+
+    <div class="row text-center">
+        <h1>Python Execution Trace</h1>
+    </div>
+
+    <div class="row expanded">
+        <div class="small-8 columns source-viewer">
+            <div class="row">
+                <div class="small-11 columns">
+                    <textarea name="source" id="source-viewer"></textarea>
+                </div>
+                <div class="small-1 columns">
+                    <input type="range" id="slider" value="0" tabindex="-1">
+                </div>
+            </div>
+        </div>
+
+        <div class="small-4 columns state-viewer-wrapper">
+            <div>
+                Execution number:
+                <input type="number" value="0" id="number" tabindex="-1">
+            </div>
+            <div class="state-viewer"></div>
+        </div>
+    </div>
+
+
+    <script id="var-state-template" type="text/x-handlebars-template">
+        <div class="row var-state">
+            <div class="small-4 columns var-name">
+                <span>{{name}}</span>
+            </div>
+            <div class="small-8 columns">
+                <span>{{value}}</span>
+            </div>
+        </div>
+    </script>
+
+    <script src="static/js/viewer.js"></script>
+</body>
+</html>

@@ -33,6 +33,8 @@ SLK_SAMPLE_COMMON_C_ERROR_RECORDS_TEST = 'slk_sample_common_c_error_records_test
 COMMON_DEEPFIX_ERROR_RECORDS = 'common_deepfix_error_records'
 DATA_RECORDS_DEEPFIX = 'data_records_deepfix'
 
+PYTHON_SUBMIT_TABLE = 'python_submit_table'
+
 # code status and language transform dict
 verdict = {'OK': 1, 'REJECTED': 2, 'WRONG_ANSWER': 3, 'RUNTIME_ERROR': 4, 'TIME_LIMIT_EXCEEDED': 5, 'MEMORY_LIMIT_EXCEEDED': 6,
            'COMPILATION_ERROR': 7, 'CHALLENGED': 8, 'FAILED': 9, 'PARTIAL': 10, 'PRESENTATION_ERROR': 11, 'IDLENESS_LIMIT_EXCEEDED': 12,
