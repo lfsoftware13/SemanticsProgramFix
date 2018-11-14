@@ -1062,28 +1062,6 @@ class CustomerDataSet(Dataset):
     def _get_raw_sample(self, row):
         raise NotImplementedError
 
-    def add_samples(self, df):
-        df = self.filter_df(df)
-        self._samples += [row for i, row in df.iterrows()]
-
-    def remain_samples(self, count=0, frac=1.0):
-        if count != 0:
-            self._samples = random.sample(self._samples, count)
-        elif frac != 1:
-            count = int(len(self._samples) * frac)
-            self._samples = random.sample(self._samples, count)
-
-    def combine_dataset(self, dataset):
-        d = CustomerDataSet(data_df=None, vocabulary=self.vocabulary, set_type=self.set_type, transform=self.transform)
-        d._samples = self._samples + dataset._samples
-        return d
-
-    def remain_dataset(self, count=0, frac=1.0):
-        d = CustomerDataSet(data_df=None, vocabulary=self.vocabulary, set_type=self.set_type, transform=self.transform)
-        d._samples = self._samples
-        d.remain_samples(count=count, frac=frac)
-        return d
-
     def __getitem__(self, index):
         return self._get_raw_sample(self._samples[index])
 

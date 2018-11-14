@@ -414,7 +414,6 @@ if __name__ == '__main__':
     parse_input_batch_data_fn = p_config['parse_input_batch_data_fn']
     parse_target_batch_data_fn = p_config['parse_target_batch_data_fn']
     expand_output_and_target_fn = p_config.get('expand_output_and_target_fn', None)
-    add_data_record_fn = p_config.get('add_data_record_fn', None)
     db_path = p_config.get('db_path', None)
     table_basename = p_config.get('table_basename', None)
     do_save_records_to_database = p_config.get('do_save_records_to_database', False)
@@ -451,7 +450,7 @@ if __name__ == '__main__':
         gpu_index=problem_util.GPU_INDEX,
     )
 
-    train_data, val_data, test_data, ac_copy_data = p_config.get("data")
+    train_data, val_data, test_data = p_config.get("data")
     if train_data is not None:
         print("The size of train data: {}".format(len(train_data)))
     if val_data is not None:

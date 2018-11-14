@@ -76,8 +76,7 @@ class DecoderRNN(BaseRNN):
         self.bidirectional_encoder = bidirectional
         self.rnn = self.rnn_cell(hidden_size, hidden_size, n_layers, batch_first=True, dropout=dropout_p)
 
-        # self.output_size = vocab_size
-        self.output_size = hidden_size
+        self.output_size = vocab_size
         self.max_length = max_len
         self.use_attention = use_attention
         self.eos_id = eos_id
@@ -85,7 +84,7 @@ class DecoderRNN(BaseRNN):
 
         self.init_input = None
 
-        # self.embedding = nn.Embedding(self.output_size, self.hidden_size)
+        self.embedding = nn.Embedding(self.output_size, self.hidden_size)
         if use_attention:
             self.attention = Attention(self.hidden_size)
 
@@ -94,9 +93,9 @@ class DecoderRNN(BaseRNN):
     def forward_step(self, input_var, hidden, encoder_outputs, function, encoder_mask=None):
         batch_size = input_var.size(0)
         output_size = input_var.size(1)
-        # embedded = self.embedding(input_var)
-        # embedded = self.input_dropout(embedded)
-        embedded = self.input_dropout(input_var)
+        # input_var = input_var.data.mask_fill_(torch.eq(input_var, -1), 0)
+        embedded = self.embedding(input_var)
+        embedded = self.input_dropout(embedded)
 
         output, hidden = self.rnn(embedded, hidden)
 
@@ -121,6 +120,7 @@ class DecoderRNN(BaseRNN):
         inputs, batch_size, max_length = self._validate_args(inputs, encoder_hidden, encoder_outputs,
                                                              function, teacher_forcing_ratio)
         decoder_hidden = self._init_state(encoder_hidden)
+        # decoder_hidden = encoder_hidden
 
         use_teacher_forcing = True if random.random() < teacher_forcing_ratio else False
 

@@ -1,4 +1,5 @@
 from common.opt import OpenAIAdam
+from experiment.experiment_dataset import load_deepfix_sequence_dataset
 
 
 def example_config(is_debug):
@@ -8,9 +9,9 @@ def example_config(is_debug):
     vocabulary = create_deepfix_common_error_vocabulary(begin_tokens=['<BEGIN>', '<INNER_BEGIN>'],
                                                         end_tokens=['<END>', '<INNER_END>'],
                                                         unk_token='<UNK>', addition_tokens=['<PAD>'])
-    begin_id = vocabulary.begin_tokens[0]
-    end_id = vocabulary.end_tokens[0]
-    datasets = None
+    begin_id = vocabulary.word_to_id(vocabulary.begin_tokens[0])
+    end_id = vocabulary.word_to_id(vocabulary.end_tokens[0])
+    datasets = load_deepfix_sequence_dataset(is_debug, vocabulary=vocabulary, only_sample=False)
 
     batch_size = 16
     epoches = 80
@@ -26,14 +27,18 @@ def example_config(is_debug):
     from model.simple_seq2seq import expand_output_and_target_fn
     from model.simple_seq2seq import create_loss_fn
     from model.simple_seq2seq import multi_step_print_output_records_fn
+    from model.simple_seq2seq import extract_includes_fn
+    from model.simple_seq2seq import create_output_ids_fn
     return {
-        'name': 'graph_encoder_sample_config2',
-        'save_name': 'graph_encoder_sample_config2.pkl',
-        'load_model_name': 'graph_encoder_sample_config2.pkl',
+        'name': 'example_config',
+        'save_name': 'example_config.pkl',
+        'load_model_name': 'example_config.pkl',
 
         'model_fn': SimpleSeq2Seq,
         'model_dict':
-            { },
+            {'vocab_size': vocabulary.vocabulary_size, 'max_len': max_length, 'input_size': 400, 'hidden_size': 400,
+             'begin_token': begin_id, 'end_token': end_id, 'input_dropout_p': 0, 'dropout_p': 0, 'n_layers': 3,
+             'bidirectional': True, 'rnn_cell': 'gru', 'use_attention': False},
 
         'do_sample_evaluate': False,
 
@@ -47,11 +52,13 @@ def example_config(is_debug):
         'print_output': False,
         'print_output_fn': multi_step_print_output_records_fn(begin_id=begin_id, end_id=end_id, vocabulary=vocabulary),
 
+        'extract_includes_fn': extract_includes_fn(),
+
         'vocabulary': vocabulary,
-        'parse_input_batch_data_fn': create_parse_input_batch_data_fn(),
+        'parse_input_batch_data_fn': create_parse_input_batch_data_fn(ignore_id),
         'parse_target_batch_data_fn': create_parse_target_batch_data_fn(ignore_id),
         'expand_output_and_target_fn': expand_output_and_target_fn(ignore_id),
-        'create_output_ids_fn': None,
+        'create_output_ids_fn': create_output_ids_fn(end_id),
         'train_loss': create_loss_fn(ignore_id),
         'evaluate_object_list': [],
 

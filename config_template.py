@@ -13,3 +13,4 @@ temp_code_write_path = r'tmp'
 python_db_path = r"G:\Project\SemanticsProgramFix\data\python_data.db"
 
 FAKE_DEEPFIX_ERROR_DATA_DBPATH = os.path.join(root, 'data', 'fake_deepfix_error_data.db')
+save_model_root = os.path.join(root, 'trained_model')
