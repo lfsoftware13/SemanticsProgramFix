@@ -1,6 +1,7 @@
 import operator
 from collections import OrderedDict
 from itertools import islice
+import more_itertools.flatten
 
 import torch.nn.functional as F
 from torch import nn, nn as nn
@@ -534,10 +535,25 @@ def batch_index_select(beam_outputs, sort_index, batch_size):
 def pad_last_dim_of_tensor_list(tensor_list, max_len=None, fill_value=0):
     total_len = [tensor.shape[-1] for tensor in tensor_list]
     if max_len is None:
-        total_len = [tensor.shape[-1] for tensor in tensor_list]
+        # total_len = [tensor.shape[-1] for tensor in tensor_list]
         max_len = max(total_len)
 
     padded_tensor_list = [F.pad(tensor, (0, max_len-one_len), 'constant', fill_value) for tensor, one_len in zip(tensor_list, total_len)]
+    return padded_tensor_list
+
+
+def pad_one_dim_of_tensor_list(tensor_list, dim=-1, max_len=None, fill_value=0):
+    total_len = [tensor.shape[dim] for tensor in tensor_list]
+    if max_len is None:
+        max_len = max(total_len)
+
+    # calculate pad list, from last dim to pad dim
+    dim_num = len(tensor_list[0].shape)
+    act_dim = dim if dim >= 0 else dim + dim_num
+    pad_list = list(more_itertools.flatten([[0, 0]for _ in range(dim_num - act_dim - 1)]))
+
+    padded_tensor_list = [F.pad(tensor, pad_list + [0, max_len - one_len], 'constant', fill_value) for tensor, one_len in
+                          zip(tensor_list, total_len)]
     return padded_tensor_list
 
 
