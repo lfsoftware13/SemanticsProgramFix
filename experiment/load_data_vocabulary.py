@@ -1,12 +1,54 @@
 import json
-
+from tokenize import tokenize
+from io import BytesIO
 import more_itertools
 
 from common.constants import CACHE_DATA_PATH
 from common.pycparser_util import tokenize_by_clex_fn
 from common.util import disk_cache
-from read_data.read_experiment_data import read_fake_common_deepfix_error_dataset_with_limit_length
+from read_data.read_experiment_data import read_fake_common_deepfix_error_dataset_with_limit_length, python_df_to_dataset
 
+#创建python的token的字典
+def python_token_dict():
+    train_df, valid_df, test_df = python_df_to_dataset()
+    
+    train_set, valid_set, test_set = set(), set(), set()
+    
+    for index, row in train_df.iterrows():
+        tokens = tokenize(BytesIO(row['code'].encode('utf-8')).readline)
+        for token in tokens:
+            train_set.add(token[1])
+
+    for index, row in valid_df.iterrows():
+        tokens = tokenize(BytesIO(row['code'].encode('utf-8')).readline)
+        for token in tokens:
+            valid_set.add(token[1])
+
+    for index, row in test_df.iterrows():
+        tokens = tokenize(BytesIO(row['code'].encode('utf-8')).readline)
+        for token in tokens:
+            test_set.add(token[1])
+            
+    train_dict, valid_dict, test_dict = dict(), dict(), dict()
+
+    index = 0
+    for i in train_set:
+        train_dict[index] = i
+        index += 1
+
+    index = 0
+    for i in valid_set:
+        valid_dict[index] = i
+        index += 1
+
+    index = 0
+    for i in test_set:
+        test_dict[index] = i
+        index += 1
+    print('三种字典的大小', len(train_dict), len(valid_dict), len(test_dict))
+    for i in test_dict:
+        print(test_dict[i])
+    return train_dict, valid_dict, test_dict
 
 # deepfix fake error vocabulary
 from vocabulary.word_vocabulary import load_vocabulary

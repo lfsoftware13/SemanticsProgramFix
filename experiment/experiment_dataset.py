@@ -1,11 +1,40 @@
 import random
-
+from read_data.read_experiment_data import python_df_to_dataset
 from common.util import show_process_map, CustomerDataSet
 import pandas as pd
-
+from tokenize import tokenize
+from io import BytesIO
 from experiment.experiment_util import load_fake_deepfix_dataset_iterate_error_data
 from vocabulary.word_vocabulary import Vocabulary
 
+#python提取需要的数据字段形成输入数据集
+def python_get_dataset():
+    df_tuple = python_df_to_dataset()
+    dataset = [[], [], []]
+    for i in range(3):
+        df = df_tuple[i]
+        for index, row in df.iterrows():
+            item = dict()
+            token_list = []
+            tokens = tokenize(BytesIO(row['artificial_code'].encode('utf-8')).readline)
+            for token in tokens:
+                token_list.append(token[1])
+            item['artificial_code_tokens'] = token_list
+
+            change_record = eval(row['change_record'])
+            token_list = []
+            tokens = tokenize(BytesIO(change_record['after'].encode('utf-8')).readline)
+            for token in tokens:
+                if token[1] != 'utf-8':
+                    token_list.append(token[1])
+            item['change_line_tokens'] = token_list
+            
+            item['error_type'] = change_record['errorType']
+            dataset[i].append(item)
+    train_dataset, valid_dataset, test_dataset = dataset[0], dataset[1], dataset[2]
+    print('最终数据集的长度', len(train_dataset), len(valid_dataset), len(test_dataset))
+    #print(train_dataset[0]['change_line_tokens'], train_dataset[0]['error_type'])
+    return train_dataset, valid_dataset, test_dataset
 
 class SequenceCodeDataset(CustomerDataSet):
     def __init__(self,
