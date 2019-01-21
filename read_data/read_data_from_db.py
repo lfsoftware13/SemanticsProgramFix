@@ -6,6 +6,14 @@ from common.constants import langdict, verdict, CACHE_DATA_PATH, scrapyOJ_DB_PAT
 from common.util import disk_cache
 from config import FAKE_DEEPFIX_ERROR_DATA_DBPATH
 
+#读取python数据，以dataframe格式返回
+def read_python_data_artificalCode(file_dir):
+    conn = sqlite3.connect(file_dir, 'r')
+    #conn = sqlite3.connect(r'C:/Users/Administrator/Desktop/python_data.db')
+    #conn = sqlite3.connect(r'/root/test/python_data.db')
+    df = pd.read_sql('select * from artificalCode', conn)
+    conn.close()
+    return df
 
 def read_data(conn, table, condition=None):
     extra_filter = ''

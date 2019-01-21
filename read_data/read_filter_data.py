@@ -1,8 +1,22 @@
 from common.analyse_include_util import extract_include, replace_include_with_blank
 from common.constants import CACHE_DATA_PATH
 from common.util import disk_cache, group_df_to_grouped_list, init_code
-from read_data.read_data_from_db import read_fake_common_deepfix_error_records
+from read_data.read_data_from_db import read_fake_common_deepfix_error_records, read_python_data_artificalCode
 
+#过滤python代码同一个人多次提交的数据
+def python_filter():
+    df = read_python_data_artificalCode()
+    print(df.shape[0], '没过滤多次提交的组数')
+    
+    recode = set()
+    for index, row in df.iterrows():
+        now = (row['user_id'], row['problem_id'])
+        if now in recode:
+            df.drop([index], inplace=True)
+        else:
+            recode.add(now)
+    df = df.reset_index(drop = True)
+    return df
 
 def filter_distinct_table_key(data_df, key, max_num=None):
     if max_num is None:
@@ -39,6 +53,12 @@ def filter_distinct_test_c_data(data_df):
     data_df = filter_distinct_problem_user_id(data_df)
     data_df = filter_distinct_problem(data_df, 10)
     data_df = filter_distinct_user(data_df, 10)
+    return data_df
+
+def filter_distinct_artificalCode():
+    data_df = read_python_data_artificalCode()
+    key = ['user_id', 'problem_id']
+    data_df = filter_distinct_table_key(data_df, key, max_num = 1)
     return data_df
 
 

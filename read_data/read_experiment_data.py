@@ -1,12 +1,37 @@
 import pandas as pd
 import os
-
+from tokenize import tokenize
+from io import BytesIO
 from common.constants import CACHE_DATA_PATH
 from common.pycparser_util import tokenize_by_clex_fn
 from common.util import disk_cache, filter_length
 from read_data.collect_codeflaws_benchmark import read_and_pickle_codeflaws_data
-from read_data.read_filter_data import read_fake_deepfix_common_error_records
+from read_data.read_filter_data import read_fake_deepfix_common_error_records, filter_distinct_artificalCode, python_filter
 
+#过滤代码token大于500的记录，并将一个df划分为三个数据集
+def python_df_to_dataset():
+    df = python_filter()
+    print(df.shape[0], '没过滤tocken的组数')
+
+    #过滤掉token大于500的记录
+    for index, row in df.iterrows():
+        tokens = tokenize(BytesIO(row['artificial_code'].encode('utf-8')).readline)
+        if len(list(tokens)) > 500:
+            df.drop([index],inplace=True)
+    df = df.reset_index(drop = True)
+    print(df.shape[0], '过滤了tocken的组数')
+
+    valid_df = df.sample(frac=0.1)
+    df.drop(valid_df.index, inplace=True)
+    test_df = df.sample(frac=0.1)
+    train_df = df.drop(test_df.index)
+
+    #将每个数据集的索引重置为从0开始
+    valid_df = valid_df.reset_index(drop = True)
+    test_df = test_df.reset_index(drop = True)
+    train_df = train_df.reset_index(drop = True)
+    print('三种数据集的数据个数', valid_df.shape[0], test_df.shape[0], train_df.shape[0])
+    return train_df, valid_df, test_df
 
 def read_codeflaws_df() -> pd.DataFrame:
     import config
