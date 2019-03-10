@@ -1298,3 +1298,11 @@ def scan_dir(dir_path, pattern=None, dir_level=-1):
                     if pattern(entry.name):
                         yield entry.path
     yield from inner_scan_project(dir_path)
+
+
+def create_python_tokenize_fn():
+    from tokenize import tokenize
+
+    def tokenize_fn(c):
+        return tokenize(BytesIO(c.encode('utf-8')).readline)
+    return tokenize_fn

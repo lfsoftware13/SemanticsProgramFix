@@ -1,7 +1,7 @@
 import operator
 from collections import OrderedDict
 from itertools import islice
-import more_itertools.flatten
+import more_itertools
 
 import torch.nn.functional as F
 from torch import nn, nn as nn

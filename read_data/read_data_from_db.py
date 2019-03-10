@@ -4,13 +4,12 @@ import json
 
 from common.constants import langdict, verdict, CACHE_DATA_PATH, scrapyOJ_DB_PATH, COMMON_DEEPFIX_ERROR_RECORDS
 from common.util import disk_cache
-from config import FAKE_DEEPFIX_ERROR_DATA_DBPATH
+from config import FAKE_DEEPFIX_ERROR_DATA_DBPATH, FAKE_CODEFORCES_PYTHON_DATA_DBPATH
 
-#读取python数据，以dataframe格式返回
-def read_python_data_artificalCode(file_dir):
-    conn = sqlite3.connect(file_dir, 'r')
-    #conn = sqlite3.connect(r'C:/Users/Administrator/Desktop/python_data.db')
-    #conn = sqlite3.connect(r'/root/test/python_data.db')
+
+# 读取python数据，以DataFrame格式返回
+def read_python_data_artificalCode():
+    conn = sqlite3.connect('file:{}?mode=ro'.format(FAKE_CODEFORCES_PYTHON_DATA_DBPATH), uri=True)
     df = pd.read_sql('select * from artificalCode', conn)
     conn.close()
     return df
@@ -82,13 +81,18 @@ if __name__ == '__main__':
     # df = df[df['testcase'].map(lambda x: x != '')]
     # df['testcase'] = df['testcase'].map(json.loads)
 
-    prob_conn = sqlite3.connect(r'C:/Users/Lf/Desktop/problem_testcase.db')
-    df = read_problem_testcase_error_records(prob_conn)
-    df = df[df['testcase'].map(lambda x: x != '' and x != "'[]'")]
-    df['testcase'] = df['testcase'].map(load_data)
-    df = df[df['testcase'].map(lambda x: len(x) > 0)]
-    df['total_testcase'] = df['testcase'].map(len)
-    df['effect_testcase'] = df['testcase'].map(lambda x: len(list(filter(lambda y: '...' != y['input'][-3:] and
-                                                                               '...' != y['output'][-3:] and
-                                                                               '...' != y['answer'][-3:], x))))
-    print('total_testcase: {}, effect_testcase: {}'.format(sum(df['total_testcase']), sum(df['effect_testcase'])))
+    df = read_python_data_artificalCode()
+    print(len(df))
+    print(df.columns)
+    print(df.iloc[0])
+
+    # prob_conn = sqlite3.connect(r'C:/Users/Lf/Desktop/problem_testcase.db')
+    # df = read_problem_testcase_error_records(prob_conn)
+    # df = df[df['testcase'].map(lambda x: x != '' and x != "'[]'")]
+    # df['testcase'] = df['testcase'].map(load_data)
+    # df = df[df['testcase'].map(lambda x: len(x) > 0)]
+    # df['total_testcase'] = df['testcase'].map(len)
+    # df['effect_testcase'] = df['testcase'].map(lambda x: len(list(filter(lambda y: '...' != y['input'][-3:] and
+    #                                                                            '...' != y['output'][-3:] and
+    #                                                                            '...' != y['answer'][-3:], x))))
+    # print('total_testcase: {}, effect_testcase: {}'.format(sum(df['total_testcase']), sum(df['effect_testcase'])))

@@ -1,3 +1,7 @@
+from io import BytesIO
+import json
+
+from common.util import create_python_tokenize_fn
 
 
 def create_name_list_by_LexToken(code_obj_list):
@@ -34,3 +38,60 @@ def parse_xy_sequence(df, data_type, keyword_vocab, tokenize_fn=None, add_begin_
         df['similar_code_words'] = df['similar_code_words'].map(add_label_fn)
 
     return df['error_code_word_id'], df['code_words'], df['similar_code_word_id'], df['similar_code_words']
+
+
+def parse_simple_python_error_code(df, data_type, keyword_vocab, add_begin_end_label=True):
+    tokenize_fn = create_python_tokenize_fn()
+    get_token_str_fn = lambda x: [i[1] for i in x]
+    get_token_line_fn = lambda x: [i[2][0] for i in x]
+
+    transform_word_to_id_without_position = lambda name_list: keyword_vocab.parse_text([name_list], False)[0]
+    df['raw_error_tokens'] = df['artificial_code'].map(tokenize_fn)
+    df['raw_error_tokens'] = df['raw_error_tokens'].map(filter_python_special_token)
+    df['error_tokens'] = df['raw_error_tokens'].map(get_token_str_fn)
+    df['error_token_ids'] = df['error_tokens'].map(transform_word_to_id_without_position)
+
+    df['error_tokens_line'] = df['raw_error_tokens'].map(get_token_line_fn)
+    df['error_line_token_length'] = df['error_tokens_line'].map(count_line_length)
+
+    def transform_word_to_id(name_list):
+        return keyword_vocab.parse_text([name_list], True)[0]
+
+    df['change_record'] = df['change_record'].map(json.loads)
+
+    df['after_token'] = df['change_record'].map(lambda x: x['after'])
+    df['after_token'] = df['after_token'].map(tokenize_fn)
+    df['after_token'] = df['after_token'].map(filter_python_special_token)
+    df['change_after_tokens'] = df['after_token'].map(get_token_str_fn)
+    df['change_after_tokens_ids'] = df['change_after_tokens'].map(transform_word_to_id)
+
+    df['original_token'] = df['change_record'].map(lambda x: x['original'])
+    df['original_token'] = df['original_token'].map(tokenize_fn)
+    df['original_token'] = df['original_token'].map(filter_python_special_token)
+    df['change_original_tokens'] = df['original_token'].map(get_token_str_fn)
+    df['change_original_tokens_ids'] = df['change_original_tokens'].map(transform_word_to_id)
+
+    df['error_type'] = df['change_record'].map(lambda x: x['errorType'])
+    df['error_line'] = df['change_record'].map(lambda x: x['row'])
+
+    return df
+
+
+def filter_python_special_token(tokens):
+    special_token_type = {59, 0}
+    tokens = list(filter(lambda tok: tok[0] not in special_token_type and tok[1] != '', tokens))
+    return tokens
+
+
+def count_line_length(token_lines):
+    now = token_lines[0]
+    line_len_list = []
+    line_len = 0
+    for l in token_lines:
+        if l != now:
+            line_len_list.append(line_len)
+            now = l
+            line_len = 0
+        line_len += 1
+    line_len_list.append(line_len)
+    return line_len_list

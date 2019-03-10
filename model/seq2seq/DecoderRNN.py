@@ -93,7 +93,7 @@ class DecoderRNN(BaseRNN):
     def forward_step(self, input_var, hidden, encoder_outputs, function, encoder_mask=None):
         batch_size = input_var.size(0)
         output_size = input_var.size(1)
-        # input_var = input_var.data.mask_fill_(torch.eq(input_var, -1), 0)
+        input_var = input_var.data.masked_fill_(torch.eq(input_var, -1), 0)
         embedded = self.embedding(input_var)
         embedded = self.input_dropout(embedded)
 

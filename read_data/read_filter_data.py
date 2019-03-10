@@ -3,7 +3,9 @@ from common.constants import CACHE_DATA_PATH
 from common.util import disk_cache, group_df_to_grouped_list, init_code
 from read_data.read_data_from_db import read_fake_common_deepfix_error_records, read_python_data_artificalCode
 
-#过滤python代码同一个人多次提交的数据
+import pandas as pd
+
+# 过滤python代码同一个人多次提交的数据
 def python_filter():
     df = read_python_data_artificalCode()
     print(df.shape[0], '没过滤多次提交的组数')
@@ -18,19 +20,21 @@ def python_filter():
     df = df.reset_index(drop = True)
     return df
 
+
 def filter_distinct_table_key(data_df, key, max_num=None):
     if max_num is None:
         max_num = float('inf')
     group_list = group_df_to_grouped_list(data_df, key)
     print('group_list', len(group_list))
-    num = min(max_num, len(group_list[0]))
-    group_res = group_list[0].sample(num).copy(deep=True)
+    distinct_list = []
     i = 0
-    for group in group_list[1:]:
-        print('filter_distinct_table_key: {} in {}'.format(i, len(group_list)))
+    for group in group_list:
+        if i % 1000 == 0:
+            print('filter_distinct_table_key: {} in {}'.format(i, len(group_list)))
         i += 1
         num = min(max_num, len(group))
-        group_res = group_res.append(group.sample(num), ignore_index=True)
+        distinct_list.append(group.sample(num))
+    group_res = pd.concat(distinct_list, ignore_index=True)
     return group_res
 
 
@@ -54,6 +58,7 @@ def filter_distinct_test_c_data(data_df):
     data_df = filter_distinct_problem(data_df, 10)
     data_df = filter_distinct_user(data_df, 10)
     return data_df
+
 
 def filter_distinct_artificalCode():
     data_df = read_python_data_artificalCode()
@@ -79,3 +84,10 @@ def read_fake_deepfix_common_error_records():
 
     data_df = data_df[data_df['similar_code'].map(lambda x: x != '')]
     return data_df
+
+
+if __name__ == '__main__':
+    df = filter_distinct_artificalCode()
+    # df = python_filter()
+    print(len(df))
+    print(df.columns)

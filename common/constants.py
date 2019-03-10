@@ -1,7 +1,9 @@
 import os
+import keyword
 
 from common.util import reverse_dict
 from config import root, scrapyOJ_path, cache_path, temp_code_write_path
+
 
 # scrapyOJ db path. all OJ data
 scrapyOJ_DB_PATH = scrapyOJ_path
@@ -350,7 +352,7 @@ c_standard_library_defined_types = {
     'div_t'
 }
 
-keywords = (
+c_keywords = (
     '_BOOL', '_COMPLEX', 'AUTO', 'BREAK', 'CASE', 'CHAR', 'CONST',
     'CONTINUE', 'DEFAULT', 'DO', 'DOUBLE', 'ELSE', 'ENUM', 'EXTERN',
     'FLOAT', 'FOR', 'GOTO', 'IF', 'INLINE', 'INT', 'LONG',
@@ -360,18 +362,18 @@ keywords = (
     'VOLATILE', 'WHILE', '__INT128',
 )
 
-keyword_map = {}
-for keyword in keywords:
-    if keyword == '_BOOL':
-        keyword_map['_Bool'] = keyword
-    elif keyword == '_COMPLEX':
-        keyword_map['_Complex'] = keyword
+c_keyword_map = {}
+for c_kwd in c_keywords:
+    if c_kwd == '_BOOL':
+        c_keyword_map['_Bool'] = c_kwd
+    elif c_kwd == '_COMPLEX':
+        c_keyword_map['_Complex'] = c_kwd
     else:
-        keyword_map[keyword.lower()] = keyword
+        c_keyword_map[c_kwd.lower()] = c_kwd
 
-keyword_map = reverse_dict(keyword_map)
+c_keyword_map = reverse_dict(c_keyword_map)
 
-operator_map = {
+c_operator_map = {
     'PLUS': '+',
     'MINUS': '-',
     'TIMES': '*',
@@ -431,8 +433,63 @@ operator_map = {
     'RBRACE': '}',
 }
 
-pre_defined_c_tokens = set(keyword_map.values()) | set(operator_map.values())
-pre_defined_c_tokens_map = {**keyword_map, **operator_map}
+pre_defined_c_tokens = set(c_keyword_map.values()) | set(c_operator_map.values())
+pre_defined_c_tokens_map = {**c_keyword_map, **c_operator_map}
 pre_defined_c_label = set(pre_defined_c_tokens_map.keys())
 
 pre_defined_c_library_tokens = c_standard_library_defined_identifier | c_standard_library_defined_types
+
+pre_defined_py_keyword = set(keyword.kwlist)
+pre_defined_py_operator = {
+    # Arithmetic Operators
+    '+',
+    '-',
+    '*',
+    '/',
+    '%',
+    '**',
+    '//',
+    '',
+
+    # Comparison Operators
+    '==',
+    '!=',
+    '<>',
+    '>',
+    '<',
+    '>=',
+    '<=',
+
+    # Assignment Operators
+    '=',
+    '+=',
+    '-=',
+    '*=',
+    '/=',
+    '%=',
+    '**=',
+    '//=',
+
+    # Bitwise Operators
+    '&',
+    '|',
+    '^',
+    '~',
+    '<<',
+    '>>',
+
+    # Logical Operators
+    'and',
+    'or',
+    'not',
+
+    # Membership Operators
+    'in',
+    'not in',
+
+    # Identity Operators
+    'is',
+    'is not',
+}
+
+pre_defined_py_label = pre_defined_py_keyword | pre_defined_py_operator

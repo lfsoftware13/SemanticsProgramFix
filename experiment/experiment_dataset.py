@@ -4,10 +4,11 @@ from common.util import show_process_map, CustomerDataSet
 import pandas as pd
 from tokenize import tokenize
 from io import BytesIO
-from experiment.experiment_util import load_fake_deepfix_dataset_iterate_error_data
+from experiment.experiment_util import load_fake_deepfix_dataset_iterate_error_data, load_fake_semantics_deepfix_dataset
 from vocabulary.word_vocabulary import Vocabulary
 
-#python提取需要的数据字段形成输入数据集
+
+# python提取需要的数据字段形成输入数据集
 def python_get_dataset():
     df_tuple = python_df_to_dataset()
     dataset = [[], [], []]
@@ -35,6 +36,45 @@ def python_get_dataset():
     print('最终数据集的长度', len(train_dataset), len(valid_dataset), len(test_dataset))
     #print(train_dataset[0]['change_line_tokens'], train_dataset[0]['error_type'])
     return train_dataset, valid_dataset, test_dataset
+
+
+class LineSequenceDataset(CustomerDataSet):
+    def __init__(self, data_df: pd.DataFrame, vocabulary: Vocabulary, name: str, do_sample: bool, MAX_LENGTH=500):
+        self.vocabulary = vocabulary
+        self.name = name
+        self.do_sample = do_sample
+        self.max_length = MAX_LENGTH
+
+        self.data_df = self.filter_df(data_df)
+        self._samples = [row for _, row in data_df.iterrows()]
+
+    def filter_df(self, df):
+        df = df[df['error_token_ids'].map(lambda x: len(x) < self.max_length)]
+        return df
+
+    def _get_raw_sample(self, row):
+        sample = {}
+        sample['id'] = row['id']
+        sample['error_token_ids'] = row['error_token_ids']
+        sample['error_line_token_length'] = row['error_line_token_length']
+        sample['error_line_length'] = len(sample['error_line_token_length'])
+
+        sample['error_line_ids'] = row['change_after_tokens_ids']
+        sample['target_line_ids'] = row['change_original_tokens_ids']
+        sample['target_line_length'] = len(sample['target_line_ids'])
+        sample['error_line'] = row['error_line']
+
+        return sample
+
+    def __getitem__(self, index):
+        return self._get_raw_sample(self._samples[index])
+
+    def __setitem__(self, key, value):
+        self._samples[key] = value
+
+    def __len__(self):
+        return len(self._samples)
+
 
 class SequenceCodeDataset(CustomerDataSet):
     def __init__(self,
@@ -112,3 +152,15 @@ def load_deepfix_sequence_dataset(is_debug, vocabulary, only_sample=False):
 
     train_dataset, valid_dataset, test_dataset = datasets
     return train_dataset, valid_dataset, test_dataset
+
+
+def load_deepfix_semantics_dataset(is_debug, vocabulary, only_sample=False):
+    dfs = load_fake_semantics_deepfix_dataset(is_debug)
+
+    datasets = [LineSequenceDataset(df, vocabulary, name, do_sample=only_sample)
+                for df, name in zip(dfs, ['train', 'valid', 'test'])]
+    for d, n in zip(datasets, ["train", "valid", "test"]):
+        info_output = "There are {} parsed data in the {} dataset".format(len(d), n)
+        print(info_output)
+
+    return datasets
