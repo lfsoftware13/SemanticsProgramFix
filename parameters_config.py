@@ -99,6 +99,8 @@ def line_token_config1(is_debug):
     from model.rnn_one_token_model import multi_step_print_output_records_fn
     from model.rnn_one_token_model import create_output_ids_fn
     from model.rnn_one_token_model import LineRNNModel
+    from common.evaluate_util import LineTokenEvaluator
+    from model.rnn_one_token_model import print_output_fn
     return {
         'name': 'line_token_config1',
         'save_name': 'line_token_config1.pkl',
@@ -111,7 +113,8 @@ def line_token_config1(is_debug):
              'begin_token': begin_id, 'end_token': end_id, 'input_dropout_p': 0, 'dropout_p': 0,
              'bidirectional': True, 'rnn_cell': 'gru', 'use_attention': True},
 
-        'do_sample_evaluate': False,
+        'do_sample_evaluate': True,
+        'do_sample': False,
 
         'do_multi_step_sample_evaluate': False,
         'max_step_times': 10,
@@ -120,8 +123,8 @@ def line_token_config1(is_debug):
         'target_file_path': '/dev/shm/main.out',
 
         'multi_step_sample_evaluator': [],
-        'print_output': False,
-        'print_output_fn': multi_step_print_output_records_fn(begin_id=begin_id, end_id=end_id, vocabulary=vocabulary),
+        'print_output': True,
+        'print_output_fn': print_output_fn(eos_id=end_id, vocabulary=vocabulary),
 
         'extract_includes_fn': None,
 
@@ -131,7 +134,7 @@ def line_token_config1(is_debug):
         'expand_output_and_target_fn': expand_output_and_target_fn(ignore_id),
         'create_output_ids_fn': create_output_ids_fn(end_id),
         'train_loss': create_loss_fn(ignore_id),
-        'evaluate_object_list': [],
+        'evaluate_object_list': [LineTokenEvaluator(ignore_id)],
 
         'epcohes': epoches,
         'start_epoch': 0,

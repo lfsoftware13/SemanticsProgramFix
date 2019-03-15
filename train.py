@@ -81,7 +81,7 @@ def train(model, dataset, batch_size, loss_function, optimizer, clip_norm, epoch
 
 
 def evaluate(model, dataset, batch_size, loss_function, parse_input_batch_data_fn, parse_target_batch_data_fn,
-             do_sample=False, print_output=False, create_output_ids_fn=None, evaluate_obj_list=[],
+             do_sample=False, print_output=False, print_output_fn=None, create_output_ids_fn=None, evaluate_obj_list=[],
              expand_output_and_target_fn=None):
     total_loss = to_cuda(torch.Tensor([0]))
     total_batch = to_cuda(torch.Tensor([0]))
@@ -120,6 +120,10 @@ def evaluate(model, dataset, batch_size, loss_function, parse_input_batch_data_f
                     step_output += res
                 # print(step_output)
                 info(step_output)
+
+                if print_output and steps % 10 == 0:
+                    print_output_fn(final_output=output_ids, model_output=model_output, model_target=model_target,
+                                    model_input=model_input, batch_data=batch_data, step_i=steps)
 
                 steps += 1
                 pbar.update(batch_size)
@@ -215,7 +219,7 @@ def train_and_evaluate(model, batch_size, train_dataset, valid_dataset, test_dat
                        parse_input_batch_data_fn, parse_target_batch_data_fn,
                        create_output_ids_fn, evaluate_obj_list,
                        load_previous=False, is_debug=False, epoch_ratio=1.0, clip_norm=1,
-                       do_sample_evaluate=False, print_output=False, print_output_fn=None, expand_output_and_target_fn=None,
+                       do_sample_evaluate=False, do_sample=False, print_output=False, print_output_fn=None, expand_output_and_target_fn=None,
                        start_epoch=0, db_path=None, table_basename=None,
                        max_step_times=1, compile_file_path=None, do_multi_step_sample_evaluate=False,
                        create_multi_step_next_input_batch_fn=None, extract_includes_fn=None,
@@ -286,8 +290,8 @@ def train_and_evaluate(model, batch_size, train_dataset, valid_dataset, test_dat
 
         if do_sample_evaluate:
             sample_test_evalutor, sample_test_loss = evaluate(model=model, dataset=test_dataset, batch_size=batch_size,
-                                                              loss_function=train_loss_fn, do_sample=True,
-                                                              print_output=print_output,
+                                                              loss_function=train_loss_fn, do_sample=do_sample,
+                                                              print_output=print_output, print_output_fn=print_output_fn,
                                                               parse_input_batch_data_fn=parse_input_batch_data_fn,
                                                               parse_target_batch_data_fn=parse_target_batch_data_fn,
                                                               create_output_ids_fn=create_output_ids_fn,
@@ -298,6 +302,7 @@ def train_and_evaluate(model, batch_size, train_dataset, valid_dataset, test_dat
             for evaluator in sample_test_evalutor:
                 print(evaluator)
                 info(evaluator)
+            return
         evaluate_output = 'evaluate: valid loss of {}, test loss of {}, ' \
                           'valid_accuracy result of {}, test_accuracy result of {}, ' \
                           'valid correct result of {}, test correct result of {}, ' \
@@ -401,6 +406,7 @@ if __name__ == '__main__':
     ac_copy_radio = p_config.get('ac_copy_radio', 0.2)
     evaluate_object_list = p_config.get("evaluate_object_list")
     do_sample_evaluate = p_config.get('do_sample_evaluate', False)
+    do_sample = p_config.get('do_sample_evaluate', False)
     do_sample_and_save = p_config.get('do_sample_and_save', False)
     # label_preprocess_fn = p_config.get("label_preprocess", lambda x: to_cuda(torch.LongTensor(x['label'])))
     # scheduler_fn = p_config.get("scheduler_fn", lambda x: torch.optim.lr_scheduler.ReduceLROnPlateau(x, 'min', patience=3, verbose=True))
@@ -463,7 +469,7 @@ if __name__ == '__main__':
                        parse_input_batch_data_fn=parse_input_batch_data_fn, parse_target_batch_data_fn=parse_target_batch_data_fn,
                        create_output_ids_fn=create_output_ids_fn, evaluate_obj_list=evaluate_object_list,
                        load_previous=load_previous, is_debug=is_debug, epoch_ratio=epoch_ratio, clip_norm=clip_norm, start_epoch=start_epoch,
-                       do_sample_evaluate=do_sample_evaluate, print_output=print_output, print_output_fn=print_output_fn,
+                       do_sample_evaluate=do_sample_evaluate, do_sample=do_sample, print_output=print_output, print_output_fn=print_output_fn,
                        max_step_times=max_step_times, compile_file_path=compile_file_path, do_multi_step_sample_evaluate=do_multi_step_sample_evaluate,
                        expand_output_and_target_fn=expand_output_and_target_fn, db_path=db_path,
                        table_basename=table_basename, vocabulary=vocabulary,

@@ -2,8 +2,9 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+from common.logger import info
 from common.problem_util import to_cuda
-from common.torch_util import pad_one_dim_of_tensor_list, create_sequence_length_mask
+from common.torch_util import pad_one_dim_of_tensor_list, create_sequence_length_mask, expand_tensor_sequence_to_same
 from common.util import PaddedList
 from model.seq2seq import EncoderRNN, DecoderRNN
 from model.seq2seq.attention import Attention
@@ -186,7 +187,8 @@ class LineRNNModel(nn.Module):
         return batch_token_sequence, batch_line_sequence, batch_line_hidden
 
     def forward(self, input_seq, input_line_length: torch.Tensor, input_line_token_length: torch.Tensor,
-                target_seq, target_length):
+                target_seq, target_length, do_sample=False):
+        teacher_forcing_ratio = 0 if do_sample else 1
         embedded = self.embedding(input_seq)
         embedded = self.input_dropout(embedded)
 
@@ -208,7 +210,7 @@ class LineRNNModel(nn.Module):
         # combine_line_state: [num_layers, batch, hidden_size]
         # batch_token_sequence: [batch, tokens, hidden_size]
         decoder_outputs, decoder_hidden, _ = self.decoder(inputs=target_seq, encoder_hidden=combine_line_state, encoder_outputs=batch_token_sequence,
-                    function=F.log_softmax, teacher_forcing_ratio=1, encoder_mask=~token_mask)
+                    function=F.log_softmax, teacher_forcing_ratio=teacher_forcing_ratio, encoder_mask=~token_mask)
         decoder_outputs = torch.stack(decoder_outputs, dim=1)
         return error_position, decoder_outputs
 
@@ -217,7 +219,7 @@ def create_loss_fn(ignore_id):
     cross_loss_fn = nn.CrossEntropyLoss(ignore_index=ignore_id)
 
     def loss_fn(error_position, output_tokens, target_position, target_tokens):
-        target_tokens = target_tokens[:, 1:]
+        # target_tokens = target_tokens[:, 1:]
         output_loss = cross_loss_fn(output_tokens.permute(0, 2, 1), target_tokens)
         position_loss = cross_loss_fn(error_position, target_position)
         total_loss = output_loss + position_loss
@@ -231,8 +233,12 @@ def create_parse_input_batch_data_fn(ignore_id):
         input_line_length = to_cuda(torch.LongTensor(PaddedList(batch_data['error_line_length'])))
         input_line_token_length = to_cuda(torch.LongTensor(PaddedList(batch_data['error_line_token_length'])))
 
-        target_seq = to_cuda(torch.LongTensor(PaddedList(batch_data['target_line_ids'], fill_value=ignore_id)))
-        target_length = to_cuda(torch.LongTensor(PaddedList(batch_data['target_line_length'])))
+        if not do_sample:
+            target_seq = to_cuda(torch.LongTensor(PaddedList(batch_data['target_line_ids'], fill_value=ignore_id)))
+            target_length = to_cuda(torch.LongTensor(PaddedList(batch_data['target_line_length'])))
+        else:
+            target_seq = None
+            target_length = None
 
         return input_seq, input_line_length, input_line_token_length, target_seq, target_length
     return parse_input
@@ -242,13 +248,18 @@ def create_parse_target_batch_data_fn(ignore_id):
     def parse_target(batch_data):
         target_error_position = to_cuda(torch.LongTensor(PaddedList(batch_data['error_line'])))
         target_seq = to_cuda(torch.LongTensor(PaddedList(batch_data['target_line_ids'], fill_value=ignore_id)))
+        target_seq = target_seq[:, 1:]
         return target_error_position, target_seq
     return parse_target
 
 
 def expand_output_and_target_fn(ignore_id):
     def expand_fn(model_output, model_target):
-        pass
+        error_position, decoder_outputs = model_output
+        target_error_position, target_seq = model_target
+
+        decoder_outputs, target_seq = expand_tensor_sequence_to_same(decoder_outputs, target_seq, fill_value=ignore_id)
+        return (error_position, decoder_outputs), (target_error_position, target_seq)
     return expand_fn
 
 
@@ -267,10 +278,36 @@ def extract_includes_fn():
 
 def create_output_ids_fn(end_id):
     def create_output_ids(model_output, model_input, do_sample=False):
-        # outputs_o = model_output[0]
-        # outputs = torch.squeeze(torch.topk(F.softmax(outputs_o, dim=-1), dim=-1, k=1)[1], dim=-1)
-        return None, None
+        position_o, token_ids_o = model_output
+        outputs = torch.squeeze(torch.topk(F.softmax(token_ids_o, dim=-1), dim=-1, k=1)[1], dim=-1)
+        return outputs
     return create_output_ids
+
+
+def print_output_fn(vocabulary, eos_id):
+    def print_fn(final_output, model_output, model_target, model_input, batch_data, step_i):
+        position_o = model_output[0]
+        position = torch.squeeze(torch.topk(F.softmax(position_o, dim=-1), dim=-1, k=1)[1], dim=-1)
+        position_t = model_target[0]
+        token_ids = model_target[1]
+        for i, (p, o, pt, ot) in enumerate(zip(position, final_output, position_t, token_ids)):
+            o = o.tolist()
+            ot = ot.tolist()
+            try:
+                end_pos = ot.index(eos_id)
+                end_pos += 1
+            except ValueError as e:
+                end_pos = len(o)
+            o = o[:end_pos]
+            texts = [vocabulary.id_to_word(t) for t in o]
+            tests_target = [vocabulary.id_to_word(t) for t in ot][:end_pos]
+
+            info('in step {} iter {}'.format(step_i, i))
+            info('position: {}'.format(p))
+            info('position: {}'.format(pt))
+            info('output: {}'.format(texts))
+            info('target: {}'.format(tests_target))
+    return print_fn
 
 
 

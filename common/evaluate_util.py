@@ -739,4 +739,31 @@ class SensibilityRNNEvaluator(Evaluator):
         return self.__str__()
 
 
+class LineTokenEvaluator(Evaluator):
+    def __init__(self, ignore_token=None):
+        self.ignore_token = ignore_token
+        self.position_accuracy = TokenAccuracy(ignore_token=ignore_token)
+        self.token_accuracy = TokenAccuracy(ignore_token=ignore_token)
+
+    def add_result(self, output_ids, model_output, model_target, model_input, batch_data):
+        output_position = torch.squeeze(torch.topk(F.log_softmax(model_output[0], dim=-1), k=1, dim=-1)[1], dim=-1)
+        output_token_ids = torch.squeeze(torch.topk(F.log_softmax(model_output[1], dim=-1), k=1, dim=-1)[1], dim=-1)
+        position_acc = self.position_accuracy.add_result(output_position, model_target[0])
+        output_token_acc = self.token_accuracy.add_result(output_token_ids, model_target[1])
+        return 'LineTokenEvaluator position_accuracy: {}, token_accuracy: {}'.format(position_acc, output_token_acc)
+
+    def clear_result(self):
+        self.position_accuracy.clear_result()
+        self.token_accuracy.clear_result()
+
+    def get_result(self):
+        return self.position_accuracy.get_result(), self.token_accuracy.get_result()
+
+    def __str__(self):
+        position_acc, token_acc = self.get_result()
+        return 'LineTokenEvaluator position_accuracy: {}, token_accuracy: {}'.format(position_acc, token_acc)
+
+    def __repr__(self):
+        return self.__str__()
+
 
