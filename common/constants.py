@@ -36,6 +36,7 @@ COMMON_DEEPFIX_ERROR_RECORDS = 'common_deepfix_error_records'
 DATA_RECORDS_DEEPFIX = 'data_records_deepfix'
 
 PYTHON_SUBMIT_TABLE = 'python_submit_table'
+C_SUBMIT_TABLE = 'c_submit_table'
 
 # code status and language transform dict
 verdict = {'OK': 1, 'REJECTED': 2, 'WRONG_ANSWER': 3, 'RUNTIME_ERROR': 4, 'TIME_LIMIT_EXCEEDED': 5, 'MEMORY_LIMIT_EXCEEDED': 6,

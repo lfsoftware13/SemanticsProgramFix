@@ -1,7 +1,7 @@
 from common.constants import ACTUAL_C_ERROR_RECORDS, CPP_TESTCASE_ERROR_RECORDS, C_COMPILE_SUCCESS_RECORDS, \
     RANDOM_C_ERROR_RECORDS, COMMON_C_ERROR_RECORDS, SLK_SAMPLE_COMMON_C_ERROR_RECORDS_TRAIN, \
     SLK_SAMPLE_COMMON_C_ERROR_RECORDS_VALID, SLK_SAMPLE_COMMON_C_ERROR_RECORDS_TEST, COMMON_DEEPFIX_ERROR_RECORDS, \
-    DATA_RECORDS_DEEPFIX, PYTHON_SUBMIT_TABLE
+    DATA_RECORDS_DEEPFIX, PYTHON_SUBMIT_TABLE, C_SUBMIT_TABLE
 
 CREATE_SUBMIT_TABLE = r'''CREATE TABLE IF NOT EXISTS submit
     (id TEXT primary key,
@@ -244,6 +244,8 @@ sql_dict = {ACTUAL_C_ERROR_RECORDS: {'create': CREATE_ACTUAL_C_ERROR_RECORDS,
                                    'update_sample_compile_info': UPDATE_SAMPLE_COMPILE_INFO,
                                    'update_original_compile_info': UPDATE_ORIGINAL_COMPILE_INFO, },
             PYTHON_SUBMIT_TABLE: {'create': CREATE_SUBMIT_TABLE,
+                                  'insert_ignore': INSERT_IGNORE_SUBMIT_TABLE},
+            C_SUBMIT_TABLE: {'create': CREATE_SUBMIT_TABLE,
                                   'insert_ignore': INSERT_IGNORE_SUBMIT_TABLE},
 
 }
