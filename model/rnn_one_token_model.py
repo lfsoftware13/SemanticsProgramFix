@@ -46,62 +46,20 @@ class PositionPointerNetwork(nn.Module):
         return error_position
 
 
-class OneTokenOutput(nn.Module):
-    def __init__(self, hidden_size):
-        super(OneTokenOutput, self).__init__()
+class LineRNNEncoderWrapper(nn.Module):
+    def __init__(self, input_size, hidden_size, vocabulary_size, n_layers, max_length, input_dropout_p=0, dropout_p=0,
+                 bidirectional=False, rnn_cell='GRU'):
+        super(LineRNNEncoderWrapper, self).__init__()
         self.hidden_size = hidden_size
-
-
-    def forward(self, hidden):
-        pass
-
-
-class OneTokenDecoderModel(nn.Module):
-    def __init__(self):
-        super(OneTokenDecoderModel, self).__init__()
-
-    def forward(self, inputs):
-        pass
-
-
-class LineRNNModel(nn.Module):
-
-    def __init__(self, vocabulary_size, input_size, hidden_size, encoder_layer_nums, decoder_layer_nums, max_length,
-                 begin_token, end_token, input_dropout_p=0, dropout_p=0, bidirectional=True, rnn_cell='GRU',
-                 use_attention=True):
-        super(LineRNNModel, self).__init__()
-        self.vocabulary_size = vocabulary_size
-        self.input_size = input_size
-        self.hidden_size = hidden_size
-        self.encoder_layer_nums = encoder_layer_nums
-        self.max_length = max_length
-        self.input_dropout_p = input_dropout_p
-        self.dropout_p = dropout_p
-        self.bidirectional = bidirectional
-        self.bidirectional_num = 2 if bidirectional else 1
-        self.rnn_cell = rnn_cell
-
-        self.embedding = nn.Embedding(vocabulary_size, input_size)
-        self.input_dropout = nn.Dropout(input_dropout_p)
 
         self.line_encoder = EncoderRNN(vocab_size=vocabulary_size, max_len=max_length, input_size=input_size,
-                                  hidden_size=hidden_size,
-                                  input_dropout_p=input_dropout_p, dropout_p=dropout_p, n_layers=encoder_layer_nums,
-                                  bidirectional=bidirectional, rnn_cell=rnn_cell, variable_lengths=False,
-                                  embedding=None, update_embedding=True, do_embedding=False)
-        self.code_encoder = EncoderRNN(vocab_size=vocabulary_size, max_len=max_length, input_size=input_size,
-                                  hidden_size=hidden_size,
-                                  input_dropout_p=input_dropout_p, dropout_p=dropout_p, n_layers=encoder_layer_nums,
-                                  bidirectional=bidirectional, rnn_cell=rnn_cell, variable_lengths=False,
-                                  embedding=None, update_embedding=True, do_embedding=False)
-        self.line_encoder_hidden_linear = nn.Linear(encoder_layer_nums * self.bidirectional_num * hidden_size, hidden_size)
-        self.encoder_linear = nn.Linear(hidden_size * self.bidirectional_num, hidden_size)
-        self.position_pointer = PositionPointerNetwork(hidden_size=self.bidirectional_num * hidden_size)
-        self.decoder = DecoderRNN(vocab_size=vocabulary_size, max_len=max_length,
-                                  hidden_size=self.bidirectional_num * hidden_size,
-                                  sos_id=begin_token, eos_id=end_token, n_layers=decoder_layer_nums, rnn_cell=rnn_cell,
-                                  bidirectional=bidirectional, input_dropout_p=input_dropout_p, dropout_p=dropout_p,
-                                  use_attention=use_attention)
+                                       hidden_size=hidden_size,
+                                       input_dropout_p=input_dropout_p, dropout_p=dropout_p,
+                                       n_layers=n_layers,
+                                       bidirectional=bidirectional, rnn_cell=rnn_cell, variable_lengths=False,
+                                       embedding=None, update_embedding=True, do_embedding=False)
+        self.line_encoder_hidden_linear = nn.Linear(n_layers * self.bidirectional_num * hidden_size,
+                                                    hidden_size)
 
     def split_sequence_accroding_chunk_list(self, sequence_tensor, chunk_list, dim=0, fill_value=0):
         '''
@@ -145,7 +103,7 @@ class LineRNNModel(nn.Module):
         output, hidden = self.line_encoder(input_sequence, line_list)
         return output, hidden
 
-    def encode_lines(self, input_seq, input_token_length):
+    def forward(self, input_seq, input_token_length):
         '''
 
         :param input_seq:
@@ -186,22 +144,59 @@ class LineRNNModel(nn.Module):
         # batch_line_hidden: [num_layers * bi_num, batch_size, line_num, hidden_size]
         return batch_token_sequence, batch_line_sequence, batch_line_hidden
 
+class LineRNNModel(nn.Module):
+
+    def __init__(self, vocabulary_size, input_size, hidden_size, encoder_layer_nums, decoder_layer_nums, max_length,
+                 begin_token, end_token, input_dropout_p=0, dropout_p=0, bidirectional=True, rnn_cell='GRU',
+                 use_attention=True):
+        super(LineRNNModel, self).__init__()
+        self.vocabulary_size = vocabulary_size
+        self.input_size = input_size
+        self.hidden_size = hidden_size
+        self.encoder_layer_nums = encoder_layer_nums
+        self.max_length = max_length
+        self.input_dropout_p = input_dropout_p
+        self.dropout_p = dropout_p
+        self.bidirectional = bidirectional
+        self.bidirectional_num = 2 if bidirectional else 1
+        self.rnn_cell = rnn_cell
+
+        self.embedding = nn.Embedding(vocabulary_size, input_size)
+        self.input_dropout = nn.Dropout(input_dropout_p)
+
+        self.line_encoder = LineRNNEncoderWrapper(input_size=input_size, hidden_size=hidden_size,
+                                                  vocabulary_size=vocabulary_size, n_layers=encoder_layer_nums,
+                                                  max_length=max_length, input_dropout_p=input_dropout_p,
+                                                  dropout_p=dropout_p, bidirectional=bidirectional, rnn_cell=rnn_cell)
+        self.code_encoder = EncoderRNN(vocab_size=vocabulary_size, max_len=max_length, input_size=input_size,
+                                       hidden_size=hidden_size, input_dropout_p=input_dropout_p, dropout_p=dropout_p,
+                                       n_layers=encoder_layer_nums, bidirectional=bidirectional, rnn_cell=rnn_cell,
+                                       variable_lengths=False, embedding=None, update_embedding=True, do_embedding=False)
+        self.encoder_linear = nn.Linear(hidden_size * self.bidirectional_num, hidden_size)
+
+        self.position_pointer = PositionPointerNetwork(hidden_size=self.bidirectional_num * hidden_size)
+        self.decoder = DecoderRNN(vocab_size=vocabulary_size, max_len=max_length,
+                                  hidden_size=self.bidirectional_num * hidden_size,
+                                  sos_id=begin_token, eos_id=end_token, n_layers=decoder_layer_nums, rnn_cell=rnn_cell,
+                                  bidirectional=bidirectional, input_dropout_p=input_dropout_p, dropout_p=dropout_p,
+                                  use_attention=use_attention)
+
     def forward(self, input_seq, input_line_length: torch.Tensor, input_line_token_length: torch.Tensor,
                 target_seq, target_length, do_sample=False):
         teacher_forcing_ratio = 0 if do_sample else 1
         embedded = self.embedding(input_seq)
         embedded = self.input_dropout(embedded)
 
-        batch_token_sequence, batch_line_sequence, batch_line_hidden = self.encode_lines(embedded, input_line_token_length)
+        batch_token_sequence, batch_line_sequence, batch_line_hidden = self.line_encoder.forward(embedded, input_line_token_length)
         # code_state: [num_layers* bi_num, batch_size, hidden_size]
         line_output_state, code_state = self.code_encoder(batch_line_sequence, input_line_length)
 
         line_mask = create_sequence_length_mask(input_line_length)
         error_position = self.position_pointer(line_output_state, line_mask)
-
         pos = torch.max(error_position, dim=-1)[1]
+
         error_line_hidden_list = [batch_line_hidden[:, i, p] for i, p in enumerate(pos)]
-        error_line_hidden = torch.stack(error_line_hidden_list, dim=1)
+        error_line_hidden = torch.stack(tuple(error_line_hidden_list), dim=1)
         # error_line_hidden = batch_line_hidden[:, :, pos]
         combine_line_state = self.encoder_linear(torch.cat((error_line_hidden, code_state), dim=-1))
 
