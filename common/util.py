@@ -791,8 +791,8 @@ def tokenize_cpp_code_by_new_tokenize(code, print_exception=False):
 
 def tokenize_python_code(code, print_exception=False):
     try:
-        if code.find('import') != -1:
-            return None
+        # if code.find('import') != -1:
+        #     return None
         g = tokenize.tokenize(BytesIO(code.encode('utf-8')).readline)
         tokens = [tokval for toknum, tokval, _, _, _ in g]
         if len(tokens) > 2000:
@@ -806,8 +806,8 @@ def tokenize_python_code(code, print_exception=False):
 
 def tokenize_python_code_with_type(code, print_exception=False):
     try:
-        if code.find('import') != -1:
-            return None
+        # if code.find('import') != -1:
+        #     return None
         g = tokenize.tokenize(BytesIO(code.encode('utf-8')).readline)
         tokens = [(t.type, t.exact_type, t.string) for t in g]
         # tokens = [(toknum, tokval) for toknum, tokval, _, _, _ in g]
@@ -1304,5 +1304,5 @@ def create_python_tokenize_fn():
     from tokenize import tokenize
 
     def tokenize_fn(c):
-        return tokenize(BytesIO(c.encode('utf-8')).readline)
+        return list(tokenize(BytesIO(c.encode('utf-8')).readline))
     return tokenize_fn

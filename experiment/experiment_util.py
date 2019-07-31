@@ -1,9 +1,9 @@
 from common.pycparser_util import tokenize_by_clex_fn
 from experiment.load_data_vocabulary import create_deepfix_common_error_vocabulary, python_token_dict, \
-    create_deepfix_python_semantics_common_error_vocabulary
+    create_deepfix_python_semantics_common_error_vocabulary, create_fake_python_semantics_common_error_vocabulary
 from experiment.parse_xy_util import parse_xy_sequence, parse_simple_python_error_code
 from read_data.read_experiment_data import read_fake_common_deepfix_error_dataset_with_limit_length, \
-    python_df_to_dataset
+    python_df_to_dataset, read_fake_semantic_python_dataset
 
 
 def load_fake_deepfix_dataset_iterate_error_data(is_debug=False):
@@ -44,11 +44,33 @@ def load_fake_deepfix_dataset_iterate_error_data(is_debug=False):
     return train_dict, valid_dict, test_dict
 
 
+# function name error! it uses the codeforces data.
 def load_fake_semantics_deepfix_dataset(is_debug=False):
     keyword_vocab = create_deepfix_python_semantics_common_error_vocabulary(begin_tokens=['<BEGIN>'], end_tokens=['<END>'],
                                                                             unk_token='<UNK>', addition_tokens=['<PAD>'])
 
     train_df, valid_df, test_df = python_df_to_dataset()
+    if is_debug:
+        train_df = train_df.sample(100)
+        valid_df = valid_df.sample(100)
+        test_df = test_df.sample(100)
+
+    parse_xy_fn = parse_simple_python_error_code
+    add_begin_end_label = True
+    params = [keyword_vocab, add_begin_end_label]
+    train_df = parse_xy_fn(train_df, 'train', *params)
+    valid_df = parse_xy_fn(valid_df, 'valid', *params)
+    test_df = parse_xy_fn(test_df, 'test', *params)
+
+    return train_df, valid_df, test_df
+
+
+def load_fake_semantic_python_dataframes(is_debug=False):
+    keyword_vocab = create_fake_python_semantics_common_error_vocabulary(begin_tokens=['<BEGIN>'], end_tokens=['<END>'],
+                                                                            unk_token='<UNK>', addition_tokens=['<PAD>'])
+
+    train_df, valid_df, test_df = read_fake_semantic_python_dataset()
+
     if is_debug:
         train_df = train_df.sample(100)
         valid_df = valid_df.sample(100)

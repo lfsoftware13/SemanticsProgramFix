@@ -34,6 +34,7 @@ SLK_SAMPLE_COMMON_C_ERROR_RECORDS_VALID = 'slk_sample_common_c_error_records_val
 SLK_SAMPLE_COMMON_C_ERROR_RECORDS_TEST = 'slk_sample_common_c_error_records_test'
 COMMON_DEEPFIX_ERROR_RECORDS = 'common_deepfix_error_records'
 DATA_RECORDS_DEEPFIX = 'data_records_deepfix'
+ARTIFICIAL_CODE = 'artificalCode'
 
 PYTHON_SUBMIT_TABLE = 'python_submit_table'
 C_SUBMIT_TABLE = 'c_submit_table'

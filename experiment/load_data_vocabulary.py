@@ -6,7 +6,8 @@ import more_itertools
 from common.constants import CACHE_DATA_PATH, pre_defined_py_label
 from common.pycparser_util import tokenize_by_clex_fn
 from common.util import disk_cache, create_python_tokenize_fn
-from read_data.read_experiment_data import read_fake_common_deepfix_error_dataset_with_limit_length, python_df_to_dataset
+from read_data.read_experiment_data import read_fake_common_deepfix_error_dataset_with_limit_length, \
+    python_df_to_dataset, read_fake_semantic_python_dataset
 from vocabulary.word_vocabulary import load_vocabulary
 
 
@@ -33,13 +34,11 @@ def python_token_dict():
     return tokens_dict
 
 
-def get_deepfix_python_semantics_train_ac_tokens():
-    train_df, _, _ = python_df_to_dataset()
-
+def extract_python_tokens_set(l):
     tokenize_fn = create_python_tokenize_fn()
     get_token_str_fn = lambda x: [i[1] for i in x]
 
-    raw_tokens = train_df['code'].map(tokenize_fn)
+    raw_tokens = l.map(tokenize_fn)
     tokens = raw_tokens.map(get_token_str_fn)
 
     tokens_list = tokens.tolist()
@@ -47,21 +46,25 @@ def get_deepfix_python_semantics_train_ac_tokens():
     return tokens_set
 
 
+# ------------------------------- old fake python semantic data vocabulary ----------------------------- #
+
+def extract_artificial_change_after_value(change_record):
+    after_fn = lambda one: one['after']
+    change_record = change_record.map(json.loads)
+    after_lines = change_record.map(after_fn)
+    return after_lines
+
+
+def get_deepfix_python_semantics_train_ac_tokens():
+    train_df, _, _ = python_df_to_dataset()
+    tokens_set = extract_python_tokens_set(train_df['code'])
+    return tokens_set
+
+
 def get_deepfix_python_semantics_train_action_tokens():
     train_df, _, _ = python_df_to_dataset()
-
-    tokenize_fn = create_python_tokenize_fn()
-    get_token_str_fn = lambda x: [i[1] for i in x]
-
-    after_fn = lambda one: one['after']
-
-    change_record = train_df['change_record'].map(json.loads)
-    after_lines = change_record.map(after_fn)
-    after_raw_tokens = after_lines.map(tokenize_fn)
-    after_tokens = after_raw_tokens.map(get_token_str_fn)
-
-    after_tokens = after_tokens.tolist()
-    after_tokens_set = set(more_itertools.collapse(after_tokens))
+    after_lines = extract_artificial_change_after_value(train_df['change_record'])
+    after_tokens_set = extract_python_tokens_set(after_lines)
     return after_tokens_set
 
 
@@ -86,6 +89,43 @@ def create_deepfix_python_semantics_common_error_vocabulary(begin_tokens, end_to
                             addition_tokens=addition_tokens)
     return vocab
 
+# ------------------------------- fake python semantic data vocabulary ----------------------------- #
+
+def get_fake_python_semantics_train_ac_tokens():
+    train_df, _, _ = read_fake_semantic_python_dataset()
+    tokens_set = extract_python_tokens_set(train_df['code'])
+    return tokens_set
+
+
+def get_fake_python_semantics_train_action_tokens():
+    train_df, _, _ = read_fake_semantic_python_dataset()
+    after_lines = extract_artificial_change_after_value(train_df['change_record'])
+    after_tokens_set = extract_python_tokens_set(after_lines)
+    return after_tokens_set
+
+
+@disk_cache(basename='get_fake_python_semantics_train_token_vocabulary_set', directory=CACHE_DATA_PATH)
+def get_fake_python_semantics_train_token_vocabulary_set():
+    ac_tokens_set = get_fake_python_semantics_train_ac_tokens()
+    action_tokens_set = get_fake_python_semantics_train_action_tokens()
+    return ac_tokens_set | action_tokens_set
+
+
+@disk_cache(basename='get_fake_python_semantics_train_token_vocabulary_id_map', directory=CACHE_DATA_PATH)
+def get_fake_python_semantics_train_token_vocabulary_id_map():
+    word_list = sorted(get_fake_python_semantics_train_token_vocabulary_set())
+    return {word: i for i, word in enumerate(word_list)}
+
+
+@disk_cache(basename='create_fake_python_semantics_common_error_vocabulary', directory=CACHE_DATA_PATH)
+def create_fake_python_semantics_common_error_vocabulary(begin_tokens, end_tokens, unk_token, addition_tokens=None):
+    vocab = load_vocabulary(load_vocabulary_fn=get_fake_python_semantics_train_token_vocabulary_set,
+                            load_vocabulary_id_dict=get_fake_python_semantics_train_token_vocabulary_id_map,
+                            begin_tokens=begin_tokens, end_tokens=end_tokens, unk_token=unk_token,
+                            addition_tokens=addition_tokens)
+    return vocab
+
+# --------------------------------------------- deepfix fake error vocabulary --------------------- #
 
 # deepfix fake error vocabulary
 def get_deepfix_train_ac_tokens_without_includes():
@@ -132,7 +172,7 @@ def create_deepfix_common_error_vocabulary(begin_tokens, end_tokens, unk_token, 
 
 
 if __name__ == '__main__':
-    vocab = create_deepfix_python_semantics_common_error_vocabulary(begin_tokens=['<BEGIN>'], end_tokens=['<END>'],
+    vocab = create_fake_python_semantics_common_error_vocabulary(begin_tokens=['<BEGIN>'], end_tokens=['<END>'],
                                                                     unk_token='<UNK>', addition_tokens=['<PAD>'])
     print(vocab.vocabulary_size)
 

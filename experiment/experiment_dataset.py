@@ -4,7 +4,8 @@ from common.util import show_process_map, CustomerDataSet
 import pandas as pd
 from tokenize import tokenize
 from io import BytesIO
-from experiment.experiment_util import load_fake_deepfix_dataset_iterate_error_data, load_fake_semantics_deepfix_dataset
+from experiment.experiment_util import load_fake_deepfix_dataset_iterate_error_data, \
+    load_fake_semantics_deepfix_dataset, load_fake_semantic_python_dataframes
 from vocabulary.word_vocabulary import Vocabulary
 
 
@@ -156,6 +157,18 @@ def load_deepfix_sequence_dataset(is_debug, vocabulary, only_sample=False):
 
 def load_deepfix_semantics_dataset(is_debug, vocabulary, only_sample=False):
     dfs = load_fake_semantics_deepfix_dataset(is_debug)
+
+    datasets = [LineSequenceDataset(df, vocabulary, name, do_sample=only_sample)
+                for df, name in zip(dfs, ['train', 'valid', 'test'])]
+    for d, n in zip(datasets, ["train", "valid", "test"]):
+        info_output = "There are {} parsed data in the {} dataset".format(len(d), n)
+        print(info_output)
+
+    return datasets
+
+
+def load_fake_python_semantics_dataset(is_debug, vocabulary, only_sample=False):
+    dfs = load_fake_semantic_python_dataframes(is_debug)
 
     datasets = [LineSequenceDataset(df, vocabulary, name, do_sample=only_sample)
                 for df, name in zip(dfs, ['train', 'valid', 'test'])]

@@ -2,9 +2,11 @@ import sqlite3
 import pandas as pd
 import json
 
-from common.constants import langdict, verdict, CACHE_DATA_PATH, scrapyOJ_DB_PATH, COMMON_DEEPFIX_ERROR_RECORDS
+from common.constants import langdict, verdict, CACHE_DATA_PATH, scrapyOJ_DB_PATH, COMMON_DEEPFIX_ERROR_RECORDS, \
+    ARTIFICIAL_CODE
 from common.util import disk_cache
-from config import FAKE_DEEPFIX_ERROR_DATA_DBPATH, FAKE_CODEFORCES_PYTHON_DATA_DBPATH
+from config import FAKE_DEEPFIX_ERROR_DATA_DBPATH, FAKE_CODEFORCES_PYTHON_DATA_DBPATH, \
+    FAKE_CODEFORCES_SEMANTIC_PYTHON_DATA_DBPATH
 
 
 # 读取python数据，以DataFrame格式返回
@@ -70,6 +72,17 @@ def read_fake_common_deepfix_error_records():
     return data_df
 
 
+@disk_cache(basename='read_fake_semantic_python_data', directory=CACHE_DATA_PATH)
+def read_fake_semantic_python_data():
+    '''
+    read fake python code from codeforces dataset with semantic error.
+    :return:
+    '''
+    conn = sqlite3.connect('file:{}?mode=ro'.format(FAKE_CODEFORCES_SEMANTIC_PYTHON_DATA_DBPATH), uri=True)
+    data_df = read_data(conn, ARTIFICIAL_CODE)
+    return data_df
+
+
 def load_data(s):
     # print('start: ', s[1:-1])
     return json.loads(s[1:-1])
@@ -81,7 +94,7 @@ if __name__ == '__main__':
     # df = df[df['testcase'].map(lambda x: x != '')]
     # df['testcase'] = df['testcase'].map(json.loads)
 
-    df = read_python_data_artificalCode()
+    df = read_fake_semantic_python_data()
     print(len(df))
     print(df.columns)
     print(df.iloc[0])
