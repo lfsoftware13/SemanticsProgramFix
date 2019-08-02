@@ -40,7 +40,7 @@ def parse_xy_sequence(df, data_type, keyword_vocab, tokenize_fn=None, add_begin_
     return df['error_code_word_id'], df['code_words'], df['similar_code_word_id'], df['similar_code_words']
 
 
-def parse_simple_python_error_code(df, data_type, keyword_vocab, add_begin_end_label=True):
+def parse_simple_python_error_code(df, data_type, keyword_vocab, max_sample_length, add_begin_end_label=True):
     tokenize_fn = create_python_tokenize_fn()
     get_token_str_fn = lambda x: [i[1] for i in x]
     get_token_line_fn = lambda x: [i[2][0] for i in x]
@@ -62,12 +62,14 @@ def parse_simple_python_error_code(df, data_type, keyword_vocab, add_begin_end_l
     df['after_token'] = df['change_record'].map(lambda x: x['after'])
     df['after_token'] = df['after_token'].map(tokenize_fn)
     df['after_token'] = df['after_token'].map(filter_python_special_token)
+    df = df[df['after_token'].map(lambda x: len(x) < max_sample_length)].copy()
     df['change_after_tokens'] = df['after_token'].map(get_token_str_fn)
     df['change_after_tokens_ids'] = df['change_after_tokens'].map(transform_word_to_id)
 
     df['original_token'] = df['change_record'].map(lambda x: x['original'])
     df['original_token'] = df['original_token'].map(tokenize_fn)
     df['original_token'] = df['original_token'].map(filter_python_special_token)
+    df = df[df['original_token'].map(lambda x: len(x) < max_sample_length)].copy()
     df['change_original_tokens'] = df['original_token'].map(get_token_str_fn)
     df['change_original_tokens_ids'] = df['change_original_tokens'].map(transform_word_to_id)
 

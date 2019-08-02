@@ -57,6 +57,7 @@ class LineSequenceDataset(CustomerDataSet):
         sample = {}
         sample['id'] = row['id']
         sample['error_token_ids'] = row['error_token_ids']
+        sample['error_token_length'] = len(sample['error_token_ids'])
         sample['error_line_token_length'] = row['error_line_token_length']
         sample['error_line_length'] = len(sample['error_line_token_length'])
 
@@ -64,6 +65,8 @@ class LineSequenceDataset(CustomerDataSet):
         sample['target_line_ids'] = row['change_original_tokens_ids']
         sample['target_line_length'] = len(sample['target_line_ids'])
         sample['error_line'] = row['error_line']
+
+        sample['adj'] = 0
 
         return sample
 
@@ -167,8 +170,8 @@ def load_deepfix_semantics_dataset(is_debug, vocabulary, only_sample=False):
     return datasets
 
 
-def load_fake_python_semantics_dataset(is_debug, vocabulary, only_sample=False):
-    dfs = load_fake_semantic_python_dataframes(is_debug)
+def load_fake_python_semantics_dataset(is_debug, vocabulary, max_sample_length, only_sample=False):
+    dfs = load_fake_semantic_python_dataframes(is_debug, max_sample_length)
 
     datasets = [LineSequenceDataset(df, vocabulary, name, do_sample=only_sample)
                 for df, name in zip(dfs, ['train', 'valid', 'test'])]

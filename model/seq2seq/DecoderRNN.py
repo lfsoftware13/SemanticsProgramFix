@@ -158,14 +158,13 @@ class DecoderRNN(BaseRNN):
                 decode(di, step_output, step_attn)
         else:
             decoder_input = inputs[:, 0].unsqueeze(1)
-            # for di in range(max_length):
-            # use for out of the decoder to add position embedding info
-            decoder_output, decoder_hidden, step_attn = self.forward_step(decoder_input, decoder_hidden, encoder_outputs,
-                                                                     function=function, encoder_mask=encoder_mask)
-            step_output = decoder_output.squeeze(1)
-            # symbols = decode(di, step_output, step_attn)
-            symbols = decode(0, step_output, step_attn)
-            decoder_input = symbols
+            for di in range(max_length):
+                decoder_output, decoder_hidden, step_attn = self.forward_step(decoder_input, decoder_hidden, encoder_outputs,
+                                                                         function=function, encoder_mask=encoder_mask)
+                step_output = decoder_output.squeeze(1)
+                # symbols = decode(di, step_output, step_attn)
+                symbols = decode(0, step_output, step_attn)
+                decoder_input = symbols
 
         ret_dict[DecoderRNN.KEY_SEQUENCE] = sequence_symbols
         ret_dict[DecoderRNN.KEY_LENGTH] = lengths.tolist()

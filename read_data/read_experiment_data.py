@@ -1,3 +1,5 @@
+import json
+
 import pandas as pd
 import os
 from tokenize import tokenize
@@ -103,5 +105,24 @@ if __name__ == '__main__':
 
     train_df, valid_df, test_df = read_fake_semantic_python_dataset()
     print(len(train_df), len(valid_df), len(test_df))
+
+    tokenize_fn = create_python_tokenize_fn()
+    train_df['change_record'] = train_df['change_record'].map(json.loads)
+    train_df['before_length'] = train_df['change_record'].map(lambda x: len(tokenize_fn(x['original'])))
+    train_df['after_length'] = train_df['change_record'].map(lambda x: len(tokenize_fn(x['after'])))
+    print('max_before_length: ', max(train_df['before_length']))
+    print('max_after_length: ', max(train_df['after_length']))
+
+    for i, row in train_df.iterrows():
+        if row['before_length'] > 100 or row['after_length'] > 100:
+            print(i, row)
+
+
+    before_length = train_df['before_length'].tolist()
+    after_length = train_df['after_length'].tolist()
+
+    before_bins = []
+
+
 
 

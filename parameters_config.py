@@ -162,13 +162,17 @@ def line_correction_baseline1(is_debug):
                                                                             unk_token='<UNK>', addition_tokens=['<PAD>'])
     begin_id = vocabulary.word_to_id(vocabulary.begin_tokens[0])
     end_id = vocabulary.word_to_id(vocabulary.end_tokens[0])
-    datasets = load_fake_python_semantics_dataset(is_debug, vocabulary=vocabulary, only_sample=False)
 
+    max_sample_length = 35
     batch_size = 16
     epoches = 80
     ignore_id = -1
     max_length = 500
     epoch_ratio = 1.0
+    use_ast = False
+
+    datasets = load_fake_python_semantics_dataset(is_debug, vocabulary=vocabulary, max_sample_length=max_sample_length, only_sample=False)
+
 
     train_len = len(datasets[0]) * epoch_ratio if datasets[0] is not None else 100
 
@@ -189,9 +193,22 @@ def line_correction_baseline1(is_debug):
         'model_fn': LineRNNModel,
         'model_dict':
             {'vocabulary_size': vocabulary.vocabulary_size, 'input_size': 400, 'hidden_size': 400,
-             'encoder_layer_nums': 3, 'decoder_layer_nums': 3, 'max_length': max_length,
+             'encoder_layer_nums': 3, 'decoder_layer_nums': 3, 'max_length': max_length, 'max_sample_length': 35,
              'begin_token': begin_id, 'end_token': end_id, 'input_dropout_p': 0, 'dropout_p': 0,
-             'bidirectional': True, 'rnn_cell': 'gru', 'use_attention': True},
+             'bidirectional': True, 'rnn_cell': 'gru', 'use_attention': True,
+             'graph_embedding': None,
+             'graph_parameter': {"rnn_parameter": {'vocab_size': vocabulary.vocabulary_size,
+                                                   'max_len': max_length, 'input_size': 400,
+                                                   'input_dropout_p': 0.2, 'dropout_p': 0.2,
+                                                   'n_layers': 1, 'bidirectional': True, 'rnn_cell': 'gru',
+                                                   'variable_lengths': False, 'embedding': None,
+                                                   'update_embedding': False, 'do_embedding': False},
+                                 "graph_type": "ggnn",
+                                 "graph_itr": 3,
+                                 "dropout_p": 0.2,
+                                 "mask_ast_node_in_rnn": False
+                                 },
+             },
 
         'do_sample_evaluate': False,
         'do_sample': False,
@@ -209,7 +226,7 @@ def line_correction_baseline1(is_debug):
         'extract_includes_fn': None,
 
         'vocabulary': vocabulary,
-        'parse_input_batch_data_fn': create_parse_input_batch_data_fn(ignore_id),
+        'parse_input_batch_data_fn': create_parse_input_batch_data_fn(ignore_id, use_ast=use_ast),
         'parse_target_batch_data_fn': create_parse_target_batch_data_fn(ignore_id),
         'expand_output_and_target_fn': expand_output_and_target_fn(ignore_id),
         'create_output_ids_fn': create_output_ids_fn(end_id),

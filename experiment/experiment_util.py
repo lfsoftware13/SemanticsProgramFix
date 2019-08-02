@@ -65,7 +65,7 @@ def load_fake_semantics_deepfix_dataset(is_debug=False):
     return train_df, valid_df, test_df
 
 
-def load_fake_semantic_python_dataframes(is_debug=False):
+def load_fake_semantic_python_dataframes(is_debug=False, max_sample_length=35):
     keyword_vocab = create_fake_python_semantics_common_error_vocabulary(begin_tokens=['<BEGIN>'], end_tokens=['<END>'],
                                                                             unk_token='<UNK>', addition_tokens=['<PAD>'])
 
@@ -78,7 +78,7 @@ def load_fake_semantic_python_dataframes(is_debug=False):
 
     parse_xy_fn = parse_simple_python_error_code
     add_begin_end_label = True
-    params = [keyword_vocab, add_begin_end_label]
+    params = [keyword_vocab, max_sample_length, add_begin_end_label]
     train_df = parse_xy_fn(train_df, 'train', *params)
     valid_df = parse_xy_fn(valid_df, 'valid', *params)
     test_df = parse_xy_fn(test_df, 'test', *params)

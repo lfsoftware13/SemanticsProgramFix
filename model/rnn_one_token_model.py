@@ -6,6 +6,7 @@ from common.logger import info
 from common.problem_util import to_cuda
 from common.torch_util import pad_one_dim_of_tensor_list, create_sequence_length_mask, expand_tensor_sequence_to_same
 from common.util import PaddedList
+from model.graph_encoder import GraphEncoder
 from model.seq2seq import EncoderRNN, DecoderRNN
 from model.seq2seq.attention import Attention
 
@@ -22,7 +23,9 @@ class SelfPointerNetwork(nn.Module):
         batch_size = input_seq.shape[0]
         input_seq = self.transform(input_seq)
         x = input_seq + self.query_transform(query)
+        x = F.tanh(x)
         x = torch.bmm(x, self.query_vector.expand(batch_size, -1, -1)).view(batch_size, -1)
+        x = torch.squeeze(x, -1)
         if mask is not None:
             shape_list = [1 for i in range(len(x.shape))]
             shape_list[0] = batch_size
@@ -51,6 +54,7 @@ class LineRNNEncoderWrapper(nn.Module):
                  bidirectional=False, rnn_cell='GRU'):
         super(LineRNNEncoderWrapper, self).__init__()
         self.hidden_size = hidden_size
+        self.bidirectional_num = 2 if bidirectional else 1
 
         self.line_encoder = EncoderRNN(vocab_size=vocabulary_size, max_len=max_length, input_size=input_size,
                                        hidden_size=hidden_size,
@@ -147,8 +151,8 @@ class LineRNNEncoderWrapper(nn.Module):
 class LineRNNModel(nn.Module):
 
     def __init__(self, vocabulary_size, input_size, hidden_size, encoder_layer_nums, decoder_layer_nums, max_length,
-                 begin_token, end_token, input_dropout_p=0, dropout_p=0, bidirectional=True, rnn_cell='GRU',
-                 use_attention=True):
+                 max_sample_length, begin_token, end_token, input_dropout_p=0, dropout_p=0, bidirectional=True,
+                 rnn_cell='GRU', use_attention=True, graph_embedding=None, graph_parameter={}):
         super(LineRNNModel, self).__init__()
         self.vocabulary_size = vocabulary_size
         self.input_size = input_size
@@ -160,9 +164,14 @@ class LineRNNModel(nn.Module):
         self.bidirectional = bidirectional
         self.bidirectional_num = 2 if bidirectional else 1
         self.rnn_cell = rnn_cell
+        self.graph_embedding = graph_embedding
+        self.graph_parameter = graph_parameter
 
         self.embedding = nn.Embedding(vocabulary_size, input_size)
         self.input_dropout = nn.Dropout(input_dropout_p)
+
+        if graph_embedding is not None:
+            self.graph_encoder = GraphEncoder(hidden_size, graph_embedding=graph_embedding, graph_parameter=graph_parameter)
 
         self.line_encoder = LineRNNEncoderWrapper(input_size=input_size, hidden_size=hidden_size,
                                                   vocabulary_size=vocabulary_size, n_layers=encoder_layer_nums,
@@ -172,22 +181,41 @@ class LineRNNModel(nn.Module):
                                        hidden_size=hidden_size, input_dropout_p=input_dropout_p, dropout_p=dropout_p,
                                        n_layers=encoder_layer_nums, bidirectional=bidirectional, rnn_cell=rnn_cell,
                                        variable_lengths=False, embedding=None, update_embedding=True, do_embedding=False)
-        self.encoder_linear = nn.Linear(hidden_size * self.bidirectional_num, hidden_size)
+        self.encoder_linear = nn.Linear(hidden_size * self.bidirectional_num, hidden_size//2)
 
         self.position_pointer = PositionPointerNetwork(hidden_size=self.bidirectional_num * hidden_size)
-        self.decoder = DecoderRNN(vocab_size=vocabulary_size, max_len=max_length,
-                                  hidden_size=self.bidirectional_num * hidden_size,
+        self.decoder = DecoderRNN(vocab_size=vocabulary_size, max_len=max_sample_length,
+                                  hidden_size=hidden_size,
                                   sos_id=begin_token, eos_id=end_token, n_layers=decoder_layer_nums, rnn_cell=rnn_cell,
                                   bidirectional=bidirectional, input_dropout_p=input_dropout_p, dropout_p=dropout_p,
                                   use_attention=use_attention)
 
-    def forward(self, input_seq, input_line_length: torch.Tensor, input_line_token_length: torch.Tensor,
+    def forward(self, input_seq, input_line_length: torch.Tensor, input_line_token_length: torch.Tensor, input_length: torch.Tensor, adj_matrix,
                 target_seq, target_length, do_sample=False):
+        '''
+
+        :param input_seq: input sequence, torch.Tensor, full with token id in dictionary
+        :param input_line_length: the number of lines per input sequence, [batch]
+        :param input_line_token_length: the length of each lines, [batch, line]
+        :param input_length: input token length include ast node, [batch]
+        :param adj_matrix:
+        :param target_seq:
+        :param target_length:
+        :param do_sample:
+        :return:
+        '''
         teacher_forcing_ratio = 0 if do_sample else 1
         embedded = self.embedding(input_seq)
         embedded = self.input_dropout(embedded)
 
-        batch_token_sequence, batch_line_sequence, batch_line_hidden = self.line_encoder.forward(embedded, input_line_token_length)
+        if self.graph_embedding is not None:
+            copy_length = torch.sum(input_line_token_length, dim=-1)
+            graph_embedded = self.graph_encoder.forward(adjacent_matrix=None, copy_length=copy_length,
+                                                  input_seq=embedded)
+        else:
+            graph_embedded = embedded
+
+        batch_token_sequence, batch_line_sequence, batch_line_hidden = self.line_encoder.forward(graph_embedded, input_line_token_length)
         # code_state: [num_layers* bi_num, batch_size, hidden_size]
         line_output_state, code_state = self.code_encoder(batch_line_sequence, input_line_length)
 
@@ -200,12 +228,11 @@ class LineRNNModel(nn.Module):
         # error_line_hidden = batch_line_hidden[:, :, pos]
         combine_line_state = self.encoder_linear(torch.cat((error_line_hidden, code_state), dim=-1))
 
-        token_length = torch.sum(input_line_token_length, dim=-1)
-        token_mask = create_sequence_length_mask(token_length)
+        encoder_mask = create_sequence_length_mask(input_length, max_len=graph_embedded.shape[1])
         # combine_line_state: [num_layers, batch, hidden_size]
         # batch_token_sequence: [batch, tokens, hidden_size]
-        decoder_outputs, decoder_hidden, _ = self.decoder(inputs=target_seq, encoder_hidden=combine_line_state, encoder_outputs=batch_token_sequence,
-                    function=F.log_softmax, teacher_forcing_ratio=teacher_forcing_ratio, encoder_mask=~token_mask)
+        decoder_outputs, decoder_hidden, _ = self.decoder(inputs=target_seq, encoder_hidden=combine_line_state, encoder_outputs=graph_embedded,
+                    function=F.log_softmax, teacher_forcing_ratio=teacher_forcing_ratio, encoder_mask=~encoder_mask)
         decoder_outputs = torch.stack(decoder_outputs, dim=1)
         return error_position, decoder_outputs
 
@@ -222,11 +249,17 @@ def create_loss_fn(ignore_id):
     return loss_fn
 
 
-def create_parse_input_batch_data_fn(ignore_id):
+def create_parse_input_batch_data_fn(ignore_id, use_ast=False):
     def parse_input(batch_data, do_sample=False):
         input_seq = to_cuda(torch.LongTensor(PaddedList(batch_data['error_token_ids'], fill_value=0)))
         input_line_length = to_cuda(torch.LongTensor(PaddedList(batch_data['error_line_length'])))
         input_line_token_length = to_cuda(torch.LongTensor(PaddedList(batch_data['error_line_token_length'])))
+
+        input_length = to_cuda(torch.LongTensor(PaddedList(batch_data['error_token_length'])))
+        if not use_ast:
+            adj_matrix = to_cuda(torch.LongTensor(batch_data['adj']))
+        else:
+            adj_matrix = to_cuda(torch.LongTensor(batch_data['adj']))
 
         if not do_sample:
             target_seq = to_cuda(torch.LongTensor(PaddedList(batch_data['target_line_ids'], fill_value=ignore_id)))
@@ -235,7 +268,7 @@ def create_parse_input_batch_data_fn(ignore_id):
             target_seq = None
             target_length = None
 
-        return input_seq, input_line_length, input_line_token_length, target_seq, target_length
+        return input_seq, input_line_length, input_line_token_length, input_length, adj_matrix, target_seq, target_length
     return parse_input
 
 
