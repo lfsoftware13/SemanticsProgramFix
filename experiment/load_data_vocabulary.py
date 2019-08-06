@@ -125,6 +125,25 @@ def create_fake_python_semantics_common_error_vocabulary(begin_tokens, end_token
                             addition_tokens=addition_tokens)
     return vocab
 
+
+def load_python_ast_vocabulary(vocabulary):
+    vocabulary.add_token("<Delimiter>")
+    from common.python_ast_util import load_all_ast_nodes
+    class_name_list = load_all_ast_nodes()
+    for n in class_name_list:
+        vocabulary.add_token(n)
+    return vocabulary
+
+
+def load_python_parser_vocabulary(vocabulary):
+    vocabulary.add_token("<Delimiter>")
+    from common.python_parse_util import load_all_parser_node_names
+    node_name_list = load_all_parser_node_names()
+    for n in node_name_list:
+        vocabulary.add_token(n)
+    return vocabulary
+
+
 # --------------------------------------------- deepfix fake error vocabulary --------------------- #
 
 # deepfix fake error vocabulary
@@ -174,5 +193,7 @@ def create_deepfix_common_error_vocabulary(begin_tokens, end_tokens, unk_token, 
 if __name__ == '__main__':
     vocab = create_fake_python_semantics_common_error_vocabulary(begin_tokens=['<BEGIN>'], end_tokens=['<END>'],
                                                                     unk_token='<UNK>', addition_tokens=['<PAD>'])
+    print(vocab.vocabulary_size)
+    vocab = load_python_parser_vocabulary(vocab)
     print(vocab.vocabulary_size)
 

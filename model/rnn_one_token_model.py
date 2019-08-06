@@ -1,6 +1,8 @@
+import more_itertools
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from toolz.sandbox import unzip
 
 from common.logger import info
 from common.problem_util import to_cuda
@@ -210,7 +212,7 @@ class LineRNNModel(nn.Module):
 
         if self.graph_embedding is not None:
             copy_length = torch.sum(input_line_token_length, dim=-1)
-            graph_embedded = self.graph_encoder.forward(adjacent_matrix=None, copy_length=copy_length,
+            graph_embedded = self.graph_encoder.forward(adjacent_matrix=adj_matrix, copy_length=copy_length,
                                                   input_seq=embedded)
         else:
             graph_embedded = embedded
@@ -259,7 +261,24 @@ def create_parse_input_batch_data_fn(ignore_id, use_ast=False):
         if not use_ast:
             adj_matrix = to_cuda(torch.LongTensor(batch_data['adj']))
         else:
-            adj_matrix = to_cuda(torch.LongTensor(batch_data['adj']))
+            adjacent_tuple = [[[i] + tt for tt in t] for i, t in enumerate(batch_data['adj'])]
+            adjacent_tuple = [list(t) for t in unzip(more_itertools.flatten(adjacent_tuple))]
+            size = max(batch_data['error_token_length'])
+            # print("max length in this batch:{}".format(size))
+            adjacent_tuple = torch.LongTensor(adjacent_tuple)
+            adjacent_values = torch.ones(adjacent_tuple.shape[1]).long()
+            adjacent_size = torch.Size([len(batch_data['error_token_length']), size, size])
+            info('batch_data input_length: ' + str(batch_data['error_token_length']))
+            info('size: ' + str(size))
+            info('adjacent_tuple: ' + str(adjacent_tuple.shape))
+            info('adjacent_size: ' + str(adjacent_size))
+            adj_matrix = to_cuda(
+                torch.sparse.LongTensor(
+                    adjacent_tuple,
+                    adjacent_values,
+                    adjacent_size,
+                ).float().to_dense()
+            )
 
         if not do_sample:
             target_seq = to_cuda(torch.LongTensor(PaddedList(batch_data['target_line_ids'], fill_value=ignore_id)))

@@ -1,7 +1,6 @@
-from io import BytesIO
 import json
 
-from common.util import create_python_tokenize_fn
+from common.util import create_python_tokenize_fn, filter_python_special_token
 
 
 def create_name_list_by_LexToken(code_obj_list):
@@ -77,12 +76,6 @@ def parse_simple_python_error_code(df, data_type, keyword_vocab, max_sample_leng
     df['error_line'] = df['change_record'].map(lambda x: x['row'])
 
     return df
-
-
-def filter_python_special_token(tokens):
-    special_token_type = {59, 0}
-    tokens = list(filter(lambda tok: tok[0] not in special_token_type and tok[1] != '', tokens))
-    return tokens
 
 
 def count_line_length(token_lines):

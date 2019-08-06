@@ -1306,3 +1306,9 @@ def create_python_tokenize_fn():
     def tokenize_fn(c):
         return list(tokenize(BytesIO(c.encode('utf-8')).readline))
     return tokenize_fn
+
+
+def filter_python_special_token(tokens):
+    special_token_type = {59, 0}
+    tokens = list(filter(lambda tok: tok[0] not in special_token_type and tok[1] != '', tokens))
+    return tokens
