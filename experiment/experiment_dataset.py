@@ -77,6 +77,8 @@ class LineSequenceDataset(CustomerDataSet):
             sample['error_token_ids'] = self.vocabulary.parse_text([input_sequence], use_position_label=False)[0]
             sample['error_token_length'] = len(sample['error_token_ids'])
             sample['adj'] = adj
+        else:
+            sample['adj'] = 0
         return sample
 
     def __getitem__(self, index):
