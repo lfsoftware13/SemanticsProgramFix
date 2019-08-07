@@ -1304,7 +1304,12 @@ def create_python_tokenize_fn():
     from tokenize import tokenize
 
     def tokenize_fn(c):
-        return list(tokenize(BytesIO(c.encode('utf-8')).readline))
+        try:
+            tokens = list(tokenize(BytesIO(c.encode('utf-8')).readline))
+        except Exception as e:
+            # print(e)
+            return None
+        return tokens
     return tokenize_fn
 
 

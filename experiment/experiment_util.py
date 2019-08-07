@@ -3,7 +3,7 @@ from experiment.load_data_vocabulary import create_deepfix_common_error_vocabula
     create_deepfix_python_semantics_common_error_vocabulary, create_fake_python_semantics_common_error_vocabulary
 from experiment.parse_xy_util import parse_xy_sequence, parse_simple_python_error_code
 from read_data.read_experiment_data import read_fake_common_deepfix_error_dataset_with_limit_length, \
-    python_df_to_dataset, read_fake_semantic_python_dataset
+    python_df_to_dataset, read_fake_semantic_python_dataset, read_codeforces_real_semantic_python_dataset
 
 
 def load_fake_deepfix_dataset_iterate_error_data(is_debug=False):
@@ -84,6 +84,25 @@ def load_fake_semantic_python_dataframes(is_debug=False, max_sample_length=35):
     test_df = parse_xy_fn(test_df, 'test', *params)
 
     return train_df, valid_df, test_df
+
+
+def load_codeforces_real_semantic_python_dataframes(is_debug=False, max_sample_length=35):
+    keyword_vocab = create_fake_python_semantics_common_error_vocabulary(begin_tokens=['<BEGIN>'], end_tokens=['<END>'],
+                                                                            unk_token='<UNK>', addition_tokens=['<PAD>'])
+
+    _, _, test_df = read_codeforces_real_semantic_python_dataset()
+    test_df['artificial_code'] = test_df['code']
+
+    if is_debug:
+        test_df = test_df.sample(100)
+
+    parse_xy_fn = parse_simple_python_error_code
+    add_begin_end_label = True
+    only_sample = True
+    params = [keyword_vocab, max_sample_length, add_begin_end_label, only_sample]
+    test_df = parse_xy_fn(test_df, 'test', *params)
+
+    return None, None, test_df
 
 
 

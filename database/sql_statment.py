@@ -1,7 +1,7 @@
 from common.constants import ACTUAL_C_ERROR_RECORDS, CPP_TESTCASE_ERROR_RECORDS, C_COMPILE_SUCCESS_RECORDS, \
     RANDOM_C_ERROR_RECORDS, COMMON_C_ERROR_RECORDS, SLK_SAMPLE_COMMON_C_ERROR_RECORDS_TRAIN, \
     SLK_SAMPLE_COMMON_C_ERROR_RECORDS_VALID, SLK_SAMPLE_COMMON_C_ERROR_RECORDS_TEST, COMMON_DEEPFIX_ERROR_RECORDS, \
-    DATA_RECORDS_DEEPFIX, PYTHON_SUBMIT_TABLE, C_SUBMIT_TABLE
+    DATA_RECORDS_DEEPFIX, PYTHON_SUBMIT_TABLE, C_SUBMIT_TABLE, LINE_TOKEN_SAMPLE_RECORDS
 
 CREATE_SUBMIT_TABLE = r'''CREATE TABLE IF NOT EXISTS submit
     (id TEXT primary key,
@@ -173,6 +173,15 @@ CREATE_MULTISTEP_SAMPLE_OUTPUT_RECORDS = r'''CREATE TABLE IF NOT EXISTS TABLENAM
   )
 '''
 
+
+CREATE_LINE_TOKEN_SAMPLE_RECORDS = r'''CREATE TABLE IF NOT EXISTS TABLENAME  (
+  id TEXT PRIMARY KEY,
+  code TEXT,
+  line_no TEXT, 
+  sample_line TEXT
+  )
+'''
+
 # CREATE_MULTISTEP_SAMPLE_OUTPUT_RECORDS = r'''CREATE TABLE IF NOT EXISTS TABLENAME  (
 #   id TEXT,
 #   includes TEXT,
@@ -213,6 +222,8 @@ INSERT_IGNORE_SLK_SAMPLE_COMMON_C_ERROR_RECORDS_VALID = r'''INSERT OR IGNORE INT
 INSERT_IGNORE_SLK_SAMPLE_COMMON_C_ERROR_RECORDS_TEST = r'''INSERT OR IGNORE INTO slk_sample_common_c_error_records_test (id, problem_id, user_id, problem_user_id, includes, code, sample_code, similar_code, original_modify_action_list, original_distance) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'''
 INSERT_IGNORE_MULTISTEP_SAMPLE_OUTPUT_RECORDS = r'''INSERT OR IGNORE INTO TABLENAME (id, includes, code, sample_code, code_list, sample_code_list, compile_res, sample_step, sample_records) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)'''
 # INSERT_IGNORE_MULTISTEP_SAMPLE_OUTPUT_RECORDS = r'''INSERT INTO TABLENAME (id, includes, code, sample_code, code_list, sample_code_list, compile_res, sample_step, sample_records) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)'''
+INSERT_IGNORE_LINE_TOKEN_SAMPLE_RECORDS = r'''INSERT OR IGNORE INTO TABLENAME (id, code, line_no, sample_line) VALUES (?, ?, ?, ?)'''
+
 
 UPDATE_SAMPLE_COMPILE_INFO = r'''UPDATE TABLENAME SET compile_info=? , errors=? , error_count=? WHERE id=?'''
 UPDATE_ORIGINAL_COMPILE_INFO = r'''UPDATE TABLENAME SET original_error_info=? , original_errors=? , original_error_count=? WHERE id=?'''
@@ -247,5 +258,7 @@ sql_dict = {ACTUAL_C_ERROR_RECORDS: {'create': CREATE_ACTUAL_C_ERROR_RECORDS,
                                   'insert_ignore': INSERT_IGNORE_SUBMIT_TABLE},
             C_SUBMIT_TABLE: {'create': CREATE_SUBMIT_TABLE,
                                   'insert_ignore': INSERT_IGNORE_SUBMIT_TABLE},
+            LINE_TOKEN_SAMPLE_RECORDS: {'create': CREATE_LINE_TOKEN_SAMPLE_RECORDS,
+                                        'insert_ignore': INSERT_IGNORE_LINE_TOKEN_SAMPLE_RECORDS}
 
 }

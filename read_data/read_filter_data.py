@@ -2,7 +2,7 @@ from common.analyse_include_util import extract_include, replace_include_with_bl
 from common.constants import CACHE_DATA_PATH
 from common.util import disk_cache, group_df_to_grouped_list, init_code
 from read_data.read_data_from_db import read_fake_common_deepfix_error_records, read_python_data_artificalCode, \
-    read_fake_semantic_python_data
+    read_fake_semantic_python_data, read_codeforces_real_semantic_python_data
 
 import pandas as pd
 
@@ -97,8 +97,18 @@ def read_fake_semantic_python_records():
     return data_df
 
 
+@disk_cache(basename='read_codeforces_real_semantic_python_records', directory=CACHE_DATA_PATH)
+def read_codeforces_real_semantic_python_records():
+    data_df = read_codeforces_real_semantic_python_data()
+    print('original data size: ', len(data_df))
+    key = ['user_id', 'problem_id']
+    data_df = filter_distinct_table_key(data_df, key, max_num=1)
+    print('after filter distinct user problem: ', len(data_df))
+    return data_df
+
+
 if __name__ == '__main__':
-    df = read_fake_semantic_python_records()
+    df = read_codeforces_real_semantic_python_records()
     # df = python_filter()
     print(len(df))
     print(df.columns)

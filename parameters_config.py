@@ -1,3 +1,4 @@
+from common.constants import LINE_TOKEN_SAMPLE_RECORDS
 from common.opt import OpenAIAdam
 
 
@@ -357,9 +358,10 @@ def line_correction_model2(is_debug):
     '''
 
     from experiment.load_data_vocabulary import create_fake_python_semantics_common_error_vocabulary
-    from experiment.experiment_dataset import load_fake_python_semantics_dataset
+    from experiment.experiment_dataset import load_fake_python_semantics_dataset, load_codeforces_real_python_semantics_dataset
     vocabulary = create_fake_python_semantics_common_error_vocabulary(begin_tokens=['<BEGIN>'], end_tokens=['<END>'],
                                                                             unk_token='<UNK>', addition_tokens=['<PAD>'])
+    from config import CODEFORCES_SEMANTIC_PYTHON_DATA_LINE_TOKEN_RECORDS_DBPATH
     begin_id = vocabulary.word_to_id(vocabulary.begin_tokens[0])
     end_id = vocabulary.word_to_id(vocabulary.end_tokens[0])
 
@@ -370,15 +372,22 @@ def line_correction_model2(is_debug):
     max_length = 500
     epoch_ratio = 1.0
     use_ast = True
+    table_name = 'line_correction_model2_75'
+    db_path = CODEFORCES_SEMANTIC_PYTHON_DATA_LINE_TOKEN_RECORDS_DBPATH
 
     if use_ast:
         from experiment.load_data_vocabulary import load_python_parser_vocabulary
         vocabulary = load_python_parser_vocabulary(vocabulary)
 
-    datasets = load_fake_python_semantics_dataset(is_debug, vocabulary=vocabulary, max_sample_length=max_sample_length,
-                                                  use_ast=use_ast, only_sample=False)
-
+    # training dataset
+    # datasets = load_fake_python_semantics_dataset(is_debug, vocabulary=vocabulary, max_sample_length=max_sample_length,
+    #                                               use_ast=use_ast, only_sample=False)
+    # real error dataset
+    datasets = load_codeforces_real_python_semantics_dataset(is_debug, vocabulary=vocabulary,
+                                                             max_sample_length=max_sample_length,
+                                                             use_ast=use_ast, only_sample=True)
     train_len = len(datasets[0]) * epoch_ratio if datasets[0] is not None else 100
+
 
     from model.rnn_one_token_model import create_parse_input_batch_data_fn
     from model.rnn_one_token_model import create_parse_target_batch_data_fn
@@ -387,7 +396,7 @@ def line_correction_model2(is_debug):
     from model.rnn_one_token_model import multi_step_print_output_records_fn
     from model.rnn_one_token_model import create_output_ids_fn
     from model.rnn_one_token_model import LineRNNModel
-    from common.evaluate_util import LineTokenEvaluator
+    from common.evaluate_util import LineTokenEvaluator, LineTokenSaver
     from model.rnn_one_token_model import print_output_fn
     return {
         'name': 'line_correction_model2',
@@ -407,8 +416,8 @@ def line_correction_model2(is_debug):
                                    },
              },
 
-        'do_sample_evaluate': False,
-        'do_sample': False,
+        'do_sample_evaluate': True,
+        'do_sample': True,
 
         'do_multi_step_sample_evaluate': False,
         'max_step_times': 10,
@@ -428,7 +437,8 @@ def line_correction_model2(is_debug):
         'expand_output_and_target_fn': expand_output_and_target_fn(ignore_id),
         'create_output_ids_fn': create_output_ids_fn(end_id),
         'train_loss': create_loss_fn(ignore_id),
-        'evaluate_object_list': [LineTokenEvaluator(ignore_id)],
+        # 'evaluate_object_list': [LineTokenEvaluator(ignore_id)],
+        'evaluate_object_list': [LineTokenSaver(vocabulary, db_path, LINE_TOKEN_SAMPLE_RECORDS, table_name, ignore_id, end_id)],
 
         'epcohes': epoches,
         'start_epoch': 0,

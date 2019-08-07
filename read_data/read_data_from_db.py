@@ -6,7 +6,7 @@ from common.constants import langdict, verdict, CACHE_DATA_PATH, scrapyOJ_DB_PAT
     ARTIFICIAL_CODE
 from common.util import disk_cache
 from config import FAKE_DEEPFIX_ERROR_DATA_DBPATH, FAKE_CODEFORCES_PYTHON_DATA_DBPATH, \
-    FAKE_CODEFORCES_SEMANTIC_PYTHON_DATA_DBPATH
+    FAKE_CODEFORCES_SEMANTIC_PYTHON_DATA_DBPATH, CODEFORCES_SEMANTIC_PYTHON_DATA_DBPATH
 
 
 # 读取python数据，以DataFrame格式返回
@@ -83,6 +83,15 @@ def read_fake_semantic_python_data():
     return data_df
 
 
+@disk_cache(basename='read_codeforces_real_semantic_python_data', directory=CACHE_DATA_PATH)
+def read_codeforces_real_semantic_python_data():
+    conn = sqlite3.connect('file:{}?mode=ro'.format(CODEFORCES_SEMANTIC_PYTHON_DATA_DBPATH), uri=True)
+    problems_df = pd.read_sql('select problem_name, tags from {}'.format('problem'), conn)
+    submit_df = read_data(conn, 'submit', condition=[['status', '=', '"WRONG_ANSWER"']])
+    submit_joined_df = merge_and_deal_submit_table(problems_df, submit_df)
+    return submit_joined_df
+
+
 def load_data(s):
     # print('start: ', s[1:-1])
     return json.loads(s[1:-1])
@@ -94,7 +103,7 @@ if __name__ == '__main__':
     # df = df[df['testcase'].map(lambda x: x != '')]
     # df['testcase'] = df['testcase'].map(json.loads)
 
-    df = read_fake_semantic_python_data()
+    df = read_codeforces_real_semantic_python_data()
     print(len(df))
     print(df.columns)
     print(df.iloc[0])

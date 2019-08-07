@@ -291,8 +291,10 @@ def create_parse_input_batch_data_fn(ignore_id, use_ast=False):
     return parse_input
 
 
-def create_parse_target_batch_data_fn(ignore_id):
+def create_parse_target_batch_data_fn(ignore_id, no_target=False):
     def parse_target(batch_data):
+        if 'error_line' not in batch_data.keys() or no_target:
+            return None
         target_error_position = to_cuda(torch.LongTensor(PaddedList(batch_data['error_line'])))
         target_seq = to_cuda(torch.LongTensor(PaddedList(batch_data['target_line_ids'], fill_value=ignore_id)))
         target_seq = target_seq[:, 1:]

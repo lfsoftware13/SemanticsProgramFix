@@ -5,7 +5,8 @@ import pandas as pd
 from tokenize import tokenize
 from io import BytesIO
 from experiment.experiment_util import load_fake_deepfix_dataset_iterate_error_data, \
-    load_fake_semantics_deepfix_dataset, load_fake_semantic_python_dataframes
+    load_fake_semantics_deepfix_dataset, load_fake_semantic_python_dataframes, \
+    load_codeforces_real_semantic_python_dataframes
 from vocabulary.word_vocabulary import Vocabulary
 
 
@@ -58,15 +59,17 @@ class LineSequenceDataset(CustomerDataSet):
     def _get_raw_sample(self, row):
         sample = {}
         sample['id'] = row['id']
+        sample['code'] = row['artificial_code']
         sample['error_token_ids'] = row['error_token_ids']
         sample['error_token_length'] = len(sample['error_token_ids'])
         sample['error_line_token_length'] = row['error_line_token_length']
         sample['error_line_length'] = len(sample['error_line_token_length'])
 
-        sample['error_line_ids'] = row['change_after_tokens_ids']
-        sample['target_line_ids'] = row['change_original_tokens_ids']
-        sample['target_line_length'] = len(sample['target_line_ids'])
-        sample['error_line'] = row['error_line']
+        if not self.do_sample:
+            sample['error_line_ids'] = row['change_after_tokens_ids']
+            sample['target_line_ids'] = row['change_original_tokens_ids']
+            sample['target_line_length'] = len(sample['target_line_ids'])
+            sample['error_line'] = row['error_line']
 
         if self.use_ast:
             from common.python_parse_util import load_python_parse_graph
@@ -186,3 +189,14 @@ def load_fake_python_semantics_dataset(is_debug, vocabulary, max_sample_length, 
         print(info_output)
 
     return datasets
+
+
+def load_codeforces_real_python_semantics_dataset(is_debug, vocabulary, max_sample_length, use_ast=False, only_sample=False):
+    _, _, test_df = load_codeforces_real_semantic_python_dataframes(is_debug, max_sample_length)
+
+    name = 'test'
+    test_dataset = LineSequenceDataset(test_df, vocabulary, name, do_sample=only_sample, use_ast=use_ast)
+    info_output = "There are {} parsed data in the {} dataset".format(len(test_dataset), name)
+    print(info_output)
+
+    return None, None, test_dataset

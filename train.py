@@ -84,6 +84,7 @@ def evaluate(model, dataset, batch_size, loss_function, parse_input_batch_data_f
              do_sample=False, print_output=False, print_output_fn=None, create_output_ids_fn=None, evaluate_obj_list=[],
              expand_output_and_target_fn=None):
     total_loss = to_cuda(torch.Tensor([0]))
+    loss = to_cuda(torch.Tensor([0]))
     total_batch = to_cuda(torch.Tensor([0]))
     steps = 0
     for o in evaluate_object_list:
@@ -102,17 +103,18 @@ def evaluate(model, dataset, batch_size, loss_function, parse_input_batch_data_f
                     model_output = model.forward(*model_input, do_sample=True)
 
                     model_target = parse_target_batch_data_fn(batch_data)
-
-                    model_output, model_target = expand_output_and_target_fn(model_output, model_target)
+                    if model_target is not None:
+                        model_output, model_target = expand_output_and_target_fn(model_output, model_target)
                 else:
                     model_output = model.forward(*model_input)
                     model_target = parse_target_batch_data_fn(batch_data)
 
-                loss = loss_function(*model_output, *model_target)
-
                 output_ids = create_output_ids_fn(model_output, model_input, do_sample)
-                total_loss += loss.data
                 total_batch += batch_size
+
+                if model_target is not None:
+                    loss = loss_function(*model_output, *model_target)
+                    total_loss += loss.data
 
                 step_output = 'in evaluate step {}  loss: {}, '.format(steps, loss.data.item())
                 for evaluator in evaluate_obj_list:
