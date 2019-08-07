@@ -29,7 +29,7 @@ def get_model(model_fn, model_params, path, load_previous=False, parallel=False,
     if parallel:
         m = nn.DataParallel(m.cuda(), device_ids=[0, 1])
     elif gpu_index is not None:
-        m = nn.DataParallel(m.cuda(), device_ids=[gpu_index])
+        m = nn.DataParallel(m.cuda(gpu_index), device_ids=[gpu_index])
     else:
         m = nn.DataParallel(m.cuda(), device_ids=[0])
     if load_previous:

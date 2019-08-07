@@ -390,6 +390,8 @@ print(c)
     full_index_dict_tree = list2dict_tree(full_index_tree)
     print(full_index_dict_tree)
     tuple_list = dict_tree_to_tuple_list(full_index_dict_tree)
+    tuple_list = [[[l1, l2], [l2, l1]] for l1, l2, _ in tuple_list]
+    tuple_list = list(more_itertools.flatten(tuple_list))
     adj = dict_tree_to_matrix(full_index_dict_tree, len(tokens) + len(seq))
     print(len(tuple_list), sum(more_itertools.collapse(adj)))
     # leaf_count = sum([1 if token.ISTERMINAL(x) else 0 for x in seq])
