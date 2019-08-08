@@ -159,6 +159,7 @@ def line_correction_baseline1(is_debug):
 
     from experiment.load_data_vocabulary import create_fake_python_semantics_common_error_vocabulary
     from experiment.experiment_dataset import load_fake_python_semantics_dataset
+    from config import CODEFORCES_SEMANTIC_PYTHON_DATA_LINE_TOKEN_RECORDS_DBPATH
     vocabulary = create_fake_python_semantics_common_error_vocabulary(begin_tokens=['<BEGIN>'], end_tokens=['<END>'],
                                                                             unk_token='<UNK>', addition_tokens=['<PAD>'])
     begin_id = vocabulary.word_to_id(vocabulary.begin_tokens[0])
@@ -166,11 +167,13 @@ def line_correction_baseline1(is_debug):
 
     max_sample_length = 35
     batch_size = 16
-    epoches = 80
+    epoches = 60
     ignore_id = -1
     max_length = 500
     epoch_ratio = 1.0
     use_ast = False
+    table_name = 'line_correction_baseline1'
+    db_path = CODEFORCES_SEMANTIC_PYTHON_DATA_LINE_TOKEN_RECORDS_DBPATH
 
     if use_ast:
         from experiment.load_data_vocabulary import load_python_parser_vocabulary
@@ -190,6 +193,7 @@ def line_correction_baseline1(is_debug):
     from model.rnn_one_token_model import LineRNNModel
     from common.evaluate_util import LineTokenEvaluator
     from model.rnn_one_token_model import print_output_fn
+    from common.evaluate_util import LineTokenSaver
     return {
         'name': 'line_correction_baseline1',
         'save_name': 'line_correction_baseline1.pkl',
@@ -237,6 +241,7 @@ def line_correction_baseline1(is_debug):
         'create_output_ids_fn': create_output_ids_fn(end_id),
         'train_loss': create_loss_fn(ignore_id),
         'evaluate_object_list': [LineTokenEvaluator(ignore_id)],
+        # 'evaluate_object_list': [LineTokenSaver(vocabulary, db_path, LINE_TOKEN_SAMPLE_RECORDS, table_name, ignore_id, end_id)],
 
         'epcohes': epoches,
         'start_epoch': 0,
@@ -259,6 +264,7 @@ def line_correction_model1(is_debug):
 
     from experiment.load_data_vocabulary import create_fake_python_semantics_common_error_vocabulary
     from experiment.experiment_dataset import load_fake_python_semantics_dataset
+    from config import CODEFORCES_SEMANTIC_PYTHON_DATA_LINE_TOKEN_RECORDS_DBPATH
     vocabulary = create_fake_python_semantics_common_error_vocabulary(begin_tokens=['<BEGIN>'], end_tokens=['<END>'],
                                                                             unk_token='<UNK>', addition_tokens=['<PAD>'])
     begin_id = vocabulary.word_to_id(vocabulary.begin_tokens[0])
@@ -266,11 +272,13 @@ def line_correction_model1(is_debug):
 
     max_sample_length = 35
     batch_size = 16
-    epoches = 80
+    epoches = 60
     ignore_id = -1
     max_length = 500
     epoch_ratio = 1.0
     use_ast = True
+    table_name = 'line_correction_model1'
+    db_path = CODEFORCES_SEMANTIC_PYTHON_DATA_LINE_TOKEN_RECORDS_DBPATH
 
     if use_ast:
         from experiment.load_data_vocabulary import load_python_parser_vocabulary
@@ -290,6 +298,7 @@ def line_correction_model1(is_debug):
     from model.rnn_one_token_model import LineRNNModel
     from common.evaluate_util import LineTokenEvaluator
     from model.rnn_one_token_model import print_output_fn
+    from common.evaluate_util import LineTokenSaver
     return {
         'name': 'line_correction_model1',
         'save_name': 'line_correction_model1.pkl',
@@ -337,6 +346,7 @@ def line_correction_model1(is_debug):
         'create_output_ids_fn': create_output_ids_fn(end_id),
         'train_loss': create_loss_fn(ignore_id),
         'evaluate_object_list': [LineTokenEvaluator(ignore_id)],
+        # 'evaluate_object_list': [LineTokenSaver(vocabulary, db_path, LINE_TOKEN_SAMPLE_RECORDS, table_name, ignore_id, end_id)],
 
         'epcohes': epoches,
         'start_epoch': 0,
@@ -367,7 +377,7 @@ def line_correction_model2(is_debug):
 
     max_sample_length = 35
     batch_size = 16
-    epoches = 80
+    epoches = 60
     ignore_id = -1
     max_length = 500
     epoch_ratio = 1.0
@@ -469,7 +479,7 @@ def line_correction_model3(is_debug):
 
     max_sample_length = 35
     batch_size = 16
-    epoches = 80
+    epoches = 60
     ignore_id = -1
     max_length = 500
     epoch_ratio = 1.0

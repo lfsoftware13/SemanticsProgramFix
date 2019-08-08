@@ -193,7 +193,7 @@ class LineRNNModel(nn.Module):
                                   use_attention=use_attention)
 
     def forward(self, input_seq, input_line_length: torch.Tensor, input_line_token_length: torch.Tensor, input_length: torch.Tensor, adj_matrix,
-                target_seq, target_length, do_sample=False):
+                target_error_position, target_seq, target_length, do_sample=False):
         '''
 
         :param input_seq: input sequence, torch.Tensor, full with token id in dictionary
@@ -223,7 +223,10 @@ class LineRNNModel(nn.Module):
 
         line_mask = create_sequence_length_mask(input_line_length)
         error_position = self.position_pointer(line_output_state, line_mask)
-        pos = torch.max(error_position, dim=-1)[1]
+        if do_sample:
+            pos = torch.max(error_position, dim=-1)[1]
+        else:
+            pos = target_error_position
 
         error_line_hidden_list = [batch_line_hidden[:, i, p] for i, p in enumerate(pos)]
         error_line_hidden = torch.stack(tuple(error_line_hidden_list), dim=1)
@@ -281,13 +284,15 @@ def create_parse_input_batch_data_fn(ignore_id, use_ast=False):
             )
 
         if not do_sample:
+            target_error_position = to_cuda(torch.LongTensor(PaddedList(batch_data['error_line'])))
             target_seq = to_cuda(torch.LongTensor(PaddedList(batch_data['target_line_ids'], fill_value=ignore_id)))
             target_length = to_cuda(torch.LongTensor(PaddedList(batch_data['target_line_length'])))
         else:
+            target_error_position = None
             target_seq = None
             target_length = None
 
-        return input_seq, input_line_length, input_line_token_length, input_length, adj_matrix, target_seq, target_length
+        return input_seq, input_line_length, input_line_token_length, input_length, adj_matrix, target_error_position, target_seq, target_length
     return parse_input
 
 

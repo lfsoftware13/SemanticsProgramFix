@@ -75,7 +75,7 @@ def parse_simple_python_error_code(df, data_type, keyword_vocab, max_sample_leng
         df['change_original_tokens_ids'] = df['change_original_tokens'].map(transform_word_to_id)
 
         df['error_type'] = df['change_record'].map(lambda x: x['errorType'])
-        df['error_line'] = df['change_record'].map(lambda x: x['row'])
+        df['error_line'] = df['change_record'].map(lambda x: x['row']-1)
 
     return df
 
