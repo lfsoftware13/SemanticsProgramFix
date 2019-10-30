@@ -12,7 +12,7 @@ setup(name='execution-trace',
       include_package_data=True,
       install_requires=[
           'voluptuous==0.8.10',
-          'Flask==0.10.1',
+          'Flask==1.0',
       ],
       test_suite='nose.collector',
       tests_require=[
